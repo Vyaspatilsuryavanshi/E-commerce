@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} | {{ product.brand.name }} | AURA LUXE{% endblock %}
+{% block meta_description %}{{ product.short_description }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="{% url 'store:home' %}">Home</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{{ product.department.get_absolute_url }}">{{ product.department.name }}</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{{ product.category.get_absolute_url }}">{{ product.category.name }}</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">{{ product.name|truncatewords:4 }}</span>
+  </div>
+
+  <div class="pdp-grid">
+    <!-- Gallery Column -->
+    <div>
+      <div class="pdp-gallery-main">
+        <img src="{{ product.display_image }}" alt="{{ product.name }}" id="pdpMainImage" class="pdp-main-img">
+      </div>
+
+      {% if product.secondary_image or product.secondary_image_url %}
+        <div class="pdp-thumbs">
+          <div class="pdp-thumb-item active" onclick="document.getElementById('pdpMainImage').src='{{ product.display_image }}'; document.querySelectorAll('.pdp-thumb-item').forEach(e => e.classList.remove('active')); this.classList.add('active');">
+            <img src="{{ product.display_image }}" alt="Angle 1" style="width:100%; height:100%; object-fit:cover;">
+          </div>
+          <div class="pdp-thumb-item" onclick="document.getElementById('pdpMainImage').src='{{ product.display_secondary_image }}'; document.querySelectorAll('.pdp-thumb-item').forEach(e => e.classList.remove('active')); this.classList.add('active');">
+            <img src="{{ product.display_secondary_image }}" alt="Angle 2" style="width:100%; height:100%; object-fit:cover;">
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Product Info & Add to Cart Column -->
+    <div>
+      <div class="pdp-brand-tag">{{ product.brand.name }} • {{ product.brand.origin_country }}</div>
+      <h1 class="pdp-title">{{ product.name }}</h1>
+
+      <!-- Rating Row -->
+      <div class="product-rating-row" style="margin-bottom:18px;">
+        <span class="stars" style="font-size:1.1rem;">★</span>
+        <span style="font-weight:700; font-size:1rem;">{{ product.rating }}</span>
+        <a href="#reviewsSection" style="color:var(--text-muted); text-decoration:underline;">({{ product.review_count }} reviews)</a>
+        {% if product.in_stock %}<span style="margin-left:auto; font-size:0.8rem; color:#059669; font-weight:700;">● In Stock & Ready to Ship</span>{% else %}<span style="margin-left:auto; font-size:0.8rem; color:#dc2626; font-weight:700;">● Out of Stock</span>{% endif %}
+      </div>
+
+      <!-- Price -->
+      <div class="pdp-price-wrap">
+        <span class="pdp-price">₹{{ product.price }}</span>
+        {% if product.is_on_sale %}
+          <span class="price-compare" style="font-size:1.15rem;">₹{{ product.compare_at_price }}</span>
+          <span class="badge-float badge-sale" style="position:static;">SAVE {{ product.discount_percent }}%</span>
+        {% endif %}
+      </div>
+
+      <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin-bottom:24px;">
+        {{ product.short_description }}
+      </p>
+
+      <!-- Express Delivery GPS Box -->
+      <div class="delivery-calculator-box">
+        <div class="delivery-calc-icon">📍</div>
+        <div>
+          <div style="font-weight:700; font-size:0.9rem;">
+            Delivery to: <span id="pdpDeliveryCity">{{ user_location.city|default:"Your Location" }}</span>
+          </div>
+          <div style="font-size:0.82rem; color:var(--text-muted);">
+            Express Courier Transit: <strong>Within 24 to 48 Hours</strong>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm js-detect-location" style="margin-left:auto;">
+          Update GPS
+        </button>
+      </div>
+
+      <!-- Add to Cart Form -->
+      <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart" id="pdpAddToCartForm">
+        {% csrf_token %}
+
+        <!-- Size Variants (Clothing) -->
+        {% if variants_by_type.sizes %}
+          <div class="variant-selection-box">
+            <div class="variant-label">
+              <span>Select Size:</span>
+              <span style="color:var(--rose-primary); font-size:0.8rem; text-decoration:underline; cursor:pointer;">Size Guide</span>
+            </div>
+            <div class="swatch-group">
+              {% for v in variants_by_type.sizes %}
+                <label class="swatch-radio-label">
+                  <input type="radio" name="variant_id" value="{{ v.id }}" {% if forloop.first and v.stock > 0 %}checked{% endif %} {% if v.stock < 1 %}disabled{% endif %} style="display:none;">
+                  <span class="swatch-pill"{% if v.stock < 1 %} style="opacity:0.45; text-decoration:line-through;"{% endif %}>{{ v.name }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Shade Swatches (Makeup) -->
+        {% if variants_by_type.shades %}
+          <div class="variant-selection-box">
+            <div class="variant-label">
+              <span>Select Shade Swatch: <strong id="selectedShadeName">{{ variants_by_type.shades.first.name }}</strong></span>
+            </div>
+            <div class="swatch-group">
+              {% for v in variants_by_type.shades %}
+                <label class="swatch-radio-label">
+                  <input type="radio" name="variant_id" value="{{ v.id }}" data-shade-name="{{ v.name }}" {% if forloop.first and v.stock > 0 %}checked{% endif %} {% if v.stock < 1 %}disabled{% endif %} onchange="document.getElementById('selectedShadeName').textContent=this.dataset.shadeName;" style="display:none;">
+                  <span class="swatch-shade-circle" style="background-color: {{ v.hex_color }}; {% if v.stock < 1 %}opacity:0.4;{% endif %}" title="{{ v.name }}{% if v.stock < 1 %} — Out of stock{% endif %}"></span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Volume (Skincare) -->
+        {% if variants_by_type.volumes %}
+          <div class="variant-selection-box">
+            <div class="variant-label">
+              <span>Select Bottle Volume:</span>
+            </div>
+            <div class="swatch-group">
+              {% for v in variants_by_type.volumes %}
+                <label class="swatch-radio-label">
+                  <input type="radio" name="variant_id" value="{{ v.id }}" {% if forloop.first and v.stock > 0 %}checked{% endif %} {% if v.stock < 1 %}disabled{% endif %} style="display:none;">
+                  <span class="swatch-pill">
+                    {{ v.name }}
+                    {% if v.additional_price > 0 %}
+                      (+₹{{ v.additional_price }})
+                    {% endif %}
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Quantity & Add to Bag -->
+        <div style="display:flex; gap:16px; align-items:center; margin-top:28px;">
+          <div class="qty-control" style="height:48px;">
+            <button type="button" class="qty-btn" onclick="const q = document.getElementById('pdpQty'); if (q.value > 1) q.value--;">-</button>
+            <input type="number" id="pdpQty" name="quantity" value="1" min="1" max="10" style="width:40px; text-align:center; font-weight:700; background:transparent;">
+            <button type="button" class="qty-btn" onclick="const q = document.getElementById('pdpQty'); q.value++;">+</button>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1;" {% if not product.in_stock %}disabled{% endif %}>
+            <span>Add to Shopping Bag</span>
+          </button>
+
+          <button type="button" class="btn btn-outline js-wishlist-toggle" data-product-id="{{ product.id }}" style="height:48px; width:48px; padding:0;" title="Save to Wishlist">
+            🤍
+          </button>
+        </div>
+      </form>
+
+      <!-- Details & Composition Accordion -->
+      <div style="margin-top:36px; border-top:1px solid var(--border-medium); padding-top:24px;">
+        <h3 style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; margin-bottom:12px;">Specifications & Craftsmanship</h3>
+        <p style="font-size:0.9rem; line-height:1.6; white-space:pre-line; color:#334155; margin-bottom:20px;">
+          {{ product.details|default:product.description }}
+        </p>
+
+        {% if product.ingredients %}
+          <h4 style="font-size:0.88rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; color:var(--text-muted);">
+            {% if product.department.slug == 'clothing' %}Fabric & Care Instructions{% else %}Clinical & Botanical Ingredients{% endif %}
+          </h4>
+          <p style="font-size:0.82rem; color:#64748b; line-height:1.6;">
+            {{ product.ingredients }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Reviews Section -->
+  <section id="reviewsSection" style="padding:48px 0; border-top:1px solid var(--border-medium);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:32px;">
+      <div>
+        <h2 style="font-family:var(--font-serif); font-size:1.8rem; font-weight:700;">Client Testimonials & Ratings</h2>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Verified feedback from luxury clients.</p>
+      </div>
+      <div style="font-size:1.4rem; font-weight:700; color:var(--rose-primary);">
+        ★ {{ product.rating }} / 5.0
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+      {% for review in reviews %}
+        <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-md); padding:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span class="stars">{% for _ in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+            {% if review.verified_buyer %}<span style="font-size:0.75rem; color:#059669; font-weight:700; background:#ecfdf5; padding:2px 8px; border-radius:var(--radius-full);">✓ Verified Buyer</span>{% endif %}
+          </div>
+          <div style="font-weight:700; font-size:0.95rem; margin-bottom:6px;">{{ review.title }}</div>
+          <p style="font-size:0.88rem; color:#475569; line-height:1.5; margin-bottom:14px;">"{{ review.comment }}"</p>
+          <div style="font-size:0.78rem; color:#94a3b8; font-weight:600;">— {{ review.author_name }}</div>
+        </div>
+      {% empty %}
+        <p style="color:var(--text-muted);">No reviews written yet. Be the first to share your experience!</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if can_review %}
+    <section style="padding:28px 0 48px; border-top:1px solid var(--border-medium);">
+      <h3 style="font-family:var(--font-serif); font-size:1.4rem; font-weight:700; margin-bottom:16px;">Share Your Experience</h3>
+      <form action="{% url 'store:submit_review' product.id %}" method="post" class="checkout-card">
+        {% csrf_token %}
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="review_rating">Rating</label>
+            <select class="form-control" id="review_rating" name="rating" required>
+              <option value="5">5 — Excellent</option><option value="4">4 — Very Good</option><option value="3">3 — Good</option><option value="2">2 — Fair</option><option value="1">1 — Poor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="review_title">Title</label>
+            <input class="form-control" id="review_title" name="title" maxlength="180" required placeholder="What stood out to you?">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="review_comment">Review</label>
+          <textarea class="form-control" id="review_comment" name="comment" rows="4" maxlength="2000" required placeholder="Tell us about your experience."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Publish Review</button>
+      </form>
+    </section>
+  {% endif %}
+
+  <!-- Similar Products -->
+  {% if related_products %}
+    <section style="padding:48px 0; border-top:1px solid var(--border-medium);">
+      <h3 style="font-family:var(--font-serif); font-size:1.6rem; font-weight:700; margin-bottom:24px;">You May Also Adore</h3>
+      <div class="product-grid">
+        {% for rel in related_products %}
+          <div class="product-card">
+            <div class="product-thumb-wrap">
+              <a href="{{ rel.get_absolute_url }}">
+                <img src="{{ rel.display_image }}" alt="{{ rel.name }}" class="product-thumb">
+              </a>
+            </div>
+            <div class="product-info">
+              <div class="product-brand">{{ rel.brand.name }}</div>
+              <a href="{{ rel.get_absolute_url }}" class="product-name">{{ rel.name }}</a>
+              <div class="product-price-row">
+                <span class="price-current">₹{{ rel.price }}</span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

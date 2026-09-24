@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shopping Bag | AURA LUXE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:40px 0 80px;">
+  <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">Your Shopping Bag</h1>
+  <p style="color:var(--text-muted); margin-bottom:32px;">Review your selected garments, clinical skincare, and luxury cosmetics.</p>
+
+  {% if cart|length > 0 %}
+    <div style="display:grid; grid-template-columns:1.5fr 0.9fr; gap:40px; align-items:flex-start;">
+      <!-- Itemized Table / List -->
+      <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow-sm);">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border-medium); text-align:left; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.06em;">
+              <th style="padding-bottom:14px;">Creation</th>
+              <th style="padding-bottom:14px;">Price</th>
+              <th style="padding-bottom:14px;">Quantity</th>
+              <th style="padding-bottom:14px; text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in cart %}
+              <tr style="border-bottom:1px solid var(--border-light);">
+                <td style="padding:20px 0; display:flex; gap:16px;">
+                  <img src="{{ item.product.display_image }}" alt="{{ item.product.name }}" style="width:72px; height:90px; border-radius:var(--radius-sm); object-fit:cover;">
+                  <div>
+                    <a href="{{ item.product.get_absolute_url }}" style="font-family:var(--font-serif); font-weight:700; font-size:1rem;">{{ item.product.name }}</a>
+                    {% if item.variant %}
+                      <div style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;">
+                        {{ item.variant.get_variant_type_display }}: <strong>{{ item.variant.name }}</strong>
+                      </div>
+                    {% endif %}
+                    <form action="{% url 'cart:cart_remove' item.key %}" method="POST" style="margin-top:10px;">
+                      {% csrf_token %}
+                      <button type="submit" style="font-size:0.78rem; color:#ef4444; text-decoration:underline;">Remove</button>
+                    </form>
+                  </div>
+                </td>
+                <td style="padding:20px 12px; font-weight:600; font-size:0.95rem;">₹{{ item.price }}</td>
+                <td style="padding:20px 12px;">
+                  <form action="{% url 'cart:cart_update' %}" method="POST" style="display:flex; align-items:center; gap:6px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="key" value="{{ item.key }}">
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" style="width:50px; padding:6px; border:1px solid var(--border-medium); border-radius:var(--radius-sm); text-align:center; font-weight:600;">
+                    <button type="submit" class="btn btn-outline btn-sm" style="padding:6px 10px;">Update</button>
+                  </form>
+                </td>
+                <td style="padding:20px 0; text-align:right; font-weight:700; font-size:1.05rem;">
+                  ₹{{ item.total_price }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <!-- Free Shipping Meter -->
+        <div style="margin-top:24px; padding:16px; background:#fff1f2; border-radius:var(--radius-md); border:1px solid #ffe4e6;">
+          <div style="font-size:0.85rem; font-weight:600; color:var(--rose-primary); margin-bottom:6px;">
+            {% if cart.is_free_shipping %}
+              ✨ You qualify for <strong>Complimentary Express Courier Shipping!</strong>
+            {% else %}
+              Add <strong>₹{{ cart.free_shipping_remaining }}</strong> more to unlock free standard delivery!
+            {% endif %}
+          </div>
+          <div class="progress-bar-bg" style="height:6px;">
+            <div class="progress-bar-fill" style="width:{{ cart.free_shipping_progress }}%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Summary Card -->
+      <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow-sm);">
+        <h2 style="font-family:var(--font-serif); font-size:1.3rem; font-weight:700; margin-bottom:20px;">Order Summary</h2>
+
+        <!-- Coupon Input -->
+        <form action="{% url 'cart:apply_coupon' %}" method="POST" style="display:flex; gap:8px; margin-bottom:24px;">
+          {% csrf_token %}
+          <input type="text" name="code" placeholder="Promo code (e.g. LUXE15)" value="{{ cart.coupon_code|default:'' }}" class="form-control" style="text-transform:uppercase; font-size:0.85rem;">
+          <button type="submit" class="btn btn-dark btn-sm">Apply</button>
+        </form>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:-16px; margin-bottom:20px;">
+          Try codes: <strong>LUXE15</strong> (15% off), <strong>BEAUTY500</strong> (₹500 off), or <strong>WELCOME10</strong> (10% off)
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.92rem;">
+          <span>Items Subtotal</span>
+          <span>₹{{ cart.subtotal }}</span>
+        </div>
+
+        {% if cart.discount_amount > 0 %}
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.92rem; color:var(--rose-primary);">
+            <span>Discount ({{ cart.coupon_code }})</span>
+            <span>-₹{{ cart.discount_amount }}</span>
+          </div>
+        {% endif %}
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:14px; font-size:0.92rem;">
+          <span>Estimated Shipping</span>
+          <span>{% if cart.is_free_shipping %}<strong style="color:var(--emerald);">FREE</strong>{% else %}₹{{ cart.shipping_cost }}{% endif %}</span>
+        </div>
+
+        <div style="border-top:1px dashed var(--border-medium); padding-top:16px; margin-top:16px; display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px;">
+          <span style="font-size:1.1rem; font-weight:700;">Total</span>
+          <span style="font-size:1.6rem; font-weight:800; color:var(--text-main);">₹{{ cart.grand_total }}</span>
+        </div>
+
+        <a href="{% url 'orders:checkout' %}" class="btn btn-primary btn-full btn-lg">
+          Proceed to Checkout →
+        </a>
+
+        <div style="margin-top:20px; font-size:0.8rem; color:#64748b; text-align:center; display:flex; flex-direction:column; gap:6px;">
+          <span>🔒 256-Bit Bank-Grade Encrypted Checkout</span>
+          <span>📍 Real-Time Courier Tracking via GPS</span>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div style="text-align:center; padding:80px 20px; background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium);">
+      <div style="font-size:3.5rem; margin-bottom:16px;">🛍️</div>
+      <h2 style="font-family:var(--font-serif); font-size:1.8rem; margin-bottom:10px;">Your shopping bag is empty</h2>
+      <p style="color:var(--text-muted); max-width:480px; margin:0 auto 28px;">
+        Discover bespoke mulberry silk garments, bio-active peptide serums, and velvety clean cosmetics.
+      </p>
+      <a href="{% url 'store:catalog' %}" class="btn btn-primary btn-lg">Explore Catalog</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

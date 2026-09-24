@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Saved Wishlist | AURA LUXE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:48px 0 96px;">
+  <div style="margin-bottom:32px;">
+    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">Saved Wishlist</h1>
+    <p style="color:var(--text-muted); font-size:0.95rem;">Keep track of your favorite garments, serums, and luxury cosmetics.</p>
+  </div>
+
+  {% if wishlist_items %}
+    <div class="product-grid">
+      {% for item in wishlist_items %}
+        {% with product=item.product %}
+          <div class="product-card">
+            <div class="product-thumb-wrap">
+              <a href="{{ product.get_absolute_url }}">
+                <img src="{{ product.display_image }}" alt="{{ product.name }}" class="product-thumb">
+              </a>
+              <button type="button" class="btn-wishlist-float js-wishlist-toggle" data-product-id="{{ product.id }}">
+                ❤️
+              </button>
+            </div>
+
+            <div class="product-info">
+              <div class="product-brand">{{ product.brand.name }}</div>
+              <a href="{{ product.get_absolute_url }}" class="product-name">{{ product.name }}</a>
+
+              <div class="product-price-row">
+                <span class="price-current">₹{{ product.price }}</span>
+                {% if product.is_on_sale %}
+                  <span class="price-compare">₹{{ product.compare_at_price }}</span>
+                {% endif %}
+              </div>
+
+              <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart">
+                {% csrf_token %}
+                <input type="hidden" name="quantity" value="1">
+                {% with first_variant=product.variants.first %}
+                  {% if first_variant %}
+                    <input type="hidden" name="variant_id" value="{{ first_variant.id }}">
+                  {% endif %}
+                {% endwith %}
+                <button type="submit" class="btn btn-dark btn-sm btn-full">
+                  <span>Move to Bag</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:64px 20px; text-align:center;">
+      <div style="font-size:3rem; margin-bottom:14px;">🤍</div>
+      <h2 style="font-family:var(--font-serif); font-size:1.6rem; font-weight:700; margin-bottom:8px;">Your wishlist is empty</h2>
+      <p style="color:var(--text-muted); margin-bottom:24px;">Explore our three collections and tap the heart icon on any product you love.</p>
+      <a href="{% url 'store:catalog' %}" class="btn btn-primary">Discover Collections</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

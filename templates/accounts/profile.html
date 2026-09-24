@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Client Dashboard | AURA LUXE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:48px 0 96px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; border-bottom:1px solid var(--border-medium); padding-bottom:20px;">
+    <div>
+      <h1 style="font-family:var(--font-serif); font-size:2.2rem; font-weight:700;">Welcome, {{ user.first_name|default:user.username }}</h1>
+      <p style="color:var(--text-muted); font-size:0.95rem;">Client Member since {{ user.date_joined|date:"F Y" }}</p>
+    </div>
+    <a href="{% url 'accounts:logout' %}" class="btn btn-outline btn-sm">Sign Out</a>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">
+    <!-- Orders History -->
+    <div>
+      <h2 style="font-family:var(--font-serif); font-size:1.4rem; font-weight:700; margin-bottom:20px;">Your Orders & Dispatches</h2>
+
+      {% for ord in orders %}
+        <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:14px; margin-bottom:16px;">
+            <div>
+              <span style="font-weight:700; font-size:1.05rem;">Order #{{ ord.order_number }}</span>
+              <div style="font-size:0.8rem; color:var(--text-muted);">Placed on {{ ord.created_at|date:"M d, Y" }}</div>
+            </div>
+            <div style="text-align:right;">
+              <span style="display:inline-block; font-size:0.8rem; font-weight:700; color:#059669; background:#ecfdf5; padding:3px 10px; border-radius:var(--radius-full);">
+                {{ ord.get_status_display }}
+              </span>
+              <div style="font-weight:700; font-size:1.05rem; margin-top:4px;">₹{{ ord.total }}</div>
+            </div>
+          </div>
+
+          <!-- Items in Order -->
+          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+            {% for it in ord.items.all %}
+              <div style="display:flex; justify-content:space-between; font-size:0.88rem;">
+                <span>{{ it.quantity }}x {{ it.product_name }} {% if it.variant_name %}({{ it.variant_name }}){% endif %}</span>
+                <span style="font-weight:600;">₹{{ it.total_price }}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:12px; font-size:0.82rem;">
+            <span>Tracking: <strong>{{ ord.tracking_number }}</strong></span>
+            <a href="{% url 'orders:order_detail' ord.order_number %}" style="color:var(--rose-primary); font-weight:700;">View Receipt →</a>
+          </div>
+        </div>
+      {% empty %}
+        <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:48px 24px; text-align:center;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">📦</div>
+          <p style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; margin-bottom:6px;">No orders placed yet</p>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">Explore bespoke couture garments, bio-active serums, and clean cosmetics.</p>
+          <a href="{% url 'store:catalog' %}" class="btn btn-primary btn-sm">Explore Catalog</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Profile & Saved Address Information -->
+    <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow-sm);">
+      <h2 style="font-family:var(--font-serif); font-size:1.3rem; font-weight:700; margin-bottom:20px;">Atelier Client Profile</h2>
+
+      <form action="{% url 'accounts:profile' %}" method="POST">
+        {% csrf_token %}
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input type="text" name="first_name" value="{{ user.first_name }}" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input type="text" name="last_name" value="{{ user.last_name }}" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" value="{{ user.email }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" name="phone" value="{{ profile.phone }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Default Shipping Address</label>
+          <input type="text" name="default_address" value="{{ profile.default_address }}" class="form-control" placeholder="Street Address">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input type="text" name="default_city" value="{{ profile.default_city }}" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <input type="text" name="default_state" value="{{ profile.default_state }}" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Postal Code</label>
+            <input type="text" name="default_postal_code" value="{{ profile.default_postal_code }}" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Country</label>
+            <input type="text" name="default_country" value="{{ profile.default_country }}" class="form-control">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-dark btn-full">Save Changes</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

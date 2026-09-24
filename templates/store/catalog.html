@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  {% if current_category %}
+    {{ current_category.name }} | {{ current_department.name }} | AURA LUXE
+  {% elif current_department %}
+    {{ current_department.name }} Collection | AURA LUXE
+  {% else %}
+    Luxury Fashion, Skincare & Beauty Catalog | AURA LUXE
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="{% url 'store:home' %}">Home</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{% url 'store:catalog' %}">Collections</a>
+    {% if current_department %}
+      <span class="breadcrumb-sep">/</span>
+      <a href="{{ current_department.get_absolute_url }}">{{ current_department.name }}</a>
+    {% endif %}
+    {% if current_category %}
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">{{ current_category.name }}</span>
+    {% endif %}
+  </div>
+
+  <!-- Header Banner -->
+  <div style="margin-bottom:32px;">
+    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">
+      {% if current_category %}
+        {{ current_category.name }}
+      {% elif current_department %}
+        {{ current_department.name }}
+      {% else %}
+        All Curations
+      {% endif %}
+    </h1>
+    <p style="color:var(--text-muted); font-size:1rem; max-width:640px;">
+      {% if current_department.tagline %}
+        {{ current_department.tagline }}
+      {% else %}
+        Explore our curated selection of bespoke evening wear, bio-active skincare, and clean makeup.
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="catalog-layout">
+    <!-- Filter Sidebar -->
+    <aside class="filters-sidebar">
+      <form action="" method="GET" id="catalogFilterForm">
+        {% if query %}
+          <input type="hidden" name="q" value="{{ query }}">
+        {% endif %}
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <span style="font-weight:700; font-size:1rem;">Filters</span>
+          <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif current_department %}{{ current_department.get_absolute_url }}{% else %}{% url 'store:catalog' %}{% endif %}" style="font-size:0.8rem; color:var(--rose-primary); text-decoration:underline;">Reset</a>
+        </div>
+
+        <!-- Departments & Categories -->
+        <div class="filter-group">
+          <div class="filter-title">Departments</div>
+          <ul class="filter-options-list">
+            <li>
+              <a href="{% url 'store:catalog' %}" style="font-weight:{% if not current_department %}700{% else %}400{% endif %}; color:{% if not current_department %}var(--rose-primary){% endif %};">
+                All Departments
+              </a>
+            </li>
+            {% for dept in departments %}
+              <li>
+                <a href="{{ dept.get_absolute_url }}" style="font-weight:{% if current_department == dept %}700{% else %}400{% endif %}; color:{% if current_department == dept %}var(--rose-primary){% endif %};">
+                  {{ dept.icon }} {{ dept.name }}
+                </a>
+
+                {% if current_department == dept and dept.categories.all %}
+                  <ul style="list-style:none; padding-left:16px; margin-top:6px; display:flex; flex-direction:column; gap:6px;">
+                    {% for cat in dept.categories.all %}
+                      <li>
+                        <a href="{{ cat.get_absolute_url }}" style="font-size:0.82rem; color:{% if current_category == cat %}var(--rose-primary); font-weight:700;{% else %}#64748b;{% endif %}">
+                          • {{ cat.name }}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Brands -->
+        <div class="filter-group">
+          <div class="filter-title">Atelier Brand</div>
+          <ul class="filter-options-list">
+            {% for b in available_brands %}
+              <li>
+                <label class="filter-checkbox-label">
+                  <input type="radio" name="brand" value="{{ b.slug }}" {% if selected_brand == b.slug %}checked{% endif %} onchange="this.form.submit()">
+                  <span>{{ b.name }}</span>
+                </label>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Price Range -->
+        <div class="filter-group">
+          <div class="filter-title">Price Range (₹)</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}" class="form-control" style="padding:6px 8px; font-size:0.85rem; width:80px;">
+            <span>–</span>
+            <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}" class="form-control" style="padding:6px 8px; font-size:0.85rem; width:80px;">
+            <button type="submit" class="btn btn-dark btn-sm" style="padding:6px 10px;">Go</button>
+          </div>
+        </div>
+
+        <!-- Rating -->
+        <div class="filter-group">
+          <div class="filter-title">Client Rating</div>
+          <ul class="filter-options-list">
+            <li>
+              <label class="filter-checkbox-label">
+                <input type="radio" name="rating" value="4.8" {% if selected_rating == '4.8' %}checked{% endif %} onchange="this.form.submit()">
+                <span>★ 4.8 & Above</span>
+              </label>
+            </li>
+            <li>
+              <label class="filter-checkbox-label">
+                <input type="radio" name="rating" value="4.5" {% if selected_rating == '4.5' %}checked{% endif %} onchange="this.form.submit()">
+                <span>★ 4.5 & Above</span>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <!-- In-Stock -->
+        <div class="filter-group" style="border-bottom:none;">
+          <label class="filter-checkbox-label">
+            <input type="checkbox" name="in_stock" value="1" {% if in_stock_only %}checked{% endif %} onchange="this.form.submit()">
+            <span style="font-weight:600;">In Stock Only</span>
+          </label>
+        </div>
+      </form>
+    </aside>
+
+    <!-- Main Results Column -->
+    <main>
+      <!-- Top Bar with Counts and Sorting -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
+        <div style="font-size:0.92rem; color:var(--text-muted);">
+          Showing <strong>{{ total_count }}</strong> luxury creations
+          {% if query %}
+            for <em>"{{ query }}"</em>
+          {% endif %}
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:0.85rem; font-weight:600;">Sort By:</span>
+          <select name="sort" onchange="const form = document.getElementById('catalogFilterForm'); const input = document.createElement('input'); input.type='hidden'; input.name='sort'; input.value=this.value; form.appendChild(input); form.submit();" class="form-control" style="padding:6px 14px; font-size:0.85rem; width:auto;">
+            <option value="featured" {% if selected_sort == 'featured' %}selected{% endif %}>Featured</option>
+            <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+            <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+            <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>New Arrivals</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      {% if products %}
+      <div class="product-grid">
+        {% for product in products %}
+          <div class="product-card">
+            <div class="product-thumb-wrap">
+              <a href="{{ product.get_absolute_url }}">
+                <img src="{{ product.display_image }}" alt="{{ product.name }}" class="product-thumb" loading="lazy">
+              </a>
+
+              {% if product.is_on_sale %}
+                <span class="badge-float badge-sale">{{ product.discount_percent }}% OFF</span>
+              {% elif product.is_trending %}
+                <span class="badge-float badge-trending">Trending</span>
+              {% endif %}
+
+              <button type="button" class="btn-wishlist-float js-wishlist-toggle" data-product-id="{{ product.id }}" title="Wishlist">
+                🤍
+              </button>
+            </div>
+
+            <div class="product-info">
+              <div class="product-brand">{{ product.brand.name }}</div>
+              <a href="{{ product.get_absolute_url }}" class="product-name">{{ product.name }}</a>
+
+              <div class="product-rating-row">
+                <span class="stars">★</span>
+                <span><strong>{{ product.rating }}</strong> ({{ product.review_count }})</span>
+                <span style="margin-left:auto; font-size:0.75rem; color:#64748b;">{{ product.category.name }}</span>
+              </div>
+
+              {% if product.variants.all %}
+                <div class="shade-swatches-preview">
+                  {% for v in product.variants.all|slice:":5" %}
+                    {% if v.hex_color %}
+                      <span class="shade-circle" style="background-color: {{ v.hex_color }};" title="{{ v.name }}"></span>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              <div class="product-price-row">
+                <span class="price-current">₹{{ product.price }}</span>
+                {% if product.is_on_sale %}
+                  <span class="price-compare">₹{{ product.compare_at_price }}</span>
+                {% endif %}
+              </div>
+
+              <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart">
+                {% csrf_token %}
+                <input type="hidden" name="quantity" value="1">
+                {% with first_variant=product.variants.first %}
+                  {% if first_variant %}
+                    <input type="hidden" name="variant_id" value="{{ first_variant.id }}">
+                  {% endif %}
+                {% endwith %}
+                <button type="submit" class="btn btn-dark btn-sm btn-full">
+                  <span>Add to Bag</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% empty %}
+          <div style="grid-column: 1 / -1; text-align:center; padding: 64px 20px;">
+            <div style="font-size:3rem; margin-bottom:14px;">🔍</div>
+            <h3 style="font-family:var(--font-serif); font-size:1.4rem; margin-bottom:8px;">No creations match your filters</h3>
+            <p style="color:var(--text-muted); margin-bottom:24px;">Try adjusting your price range, clearing filters, or using our Visual Search.</p>
+            <a href="{% url 'store:catalog' %}" class="btn btn-primary">Reset Filters</a>
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:64px 24px; text-align:center;">
+          <div style="font-size:2.8rem; margin-bottom:14px;">🛍️</div>
+          <h2 style="font-family:var(--font-serif); font-size:1.45rem; margin-bottom:8px;">No creations found</h2>
+          <p style="color:var(--text-muted); max-width:520px; margin:0 auto 22px; line-height:1.6;">
+            {% if total_count == 0 and not query and not current_department and not current_category %}
+              The catalog is ready for its first collection.
+            {% else %}
+              Try another search or clear the current filters to see more products.
+            {% endif %}
+          </p>
+          <a href="{% url 'store:catalog' %}" class="btn btn-primary btn-sm">Browse All Collections</a>
+        </div>
+      {% endif %}
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+        <div style="display:flex; justify-content:center; gap:8px; margin-top:48px;">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">← Previous</a>
+          {% endif %}
+          <span style="display:flex; align-items:center; padding:0 12px; font-weight:600; font-size:0.88rem;">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Next →</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}

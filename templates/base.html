@@ -1,0 +1,432 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AURA LUXE | Luxury Fashion, Skincare & Clean Beauty{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Discover bespoke designer clothing, clinical botanical skincare, and clean luxury makeup at AURA LUXE.{% endblock %}">
+
+  <!-- Google Fonts: Playfair Display (Serif) & Plus Jakarta Sans (Sans-serif) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/store.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Top Location & Announcement Bar -->
+  <div class="top-bar">
+    <div class="container top-bar-inner">
+      <div class="location-detector-badge js-detect-location" id="headerLocationBtn" title="Click to auto-detect your delivery address via GPS">
+        <span>📍 Deliver to: <strong id="headerLocationText">{{ request.session.user_location.city|default:"Auto-Detect Location" }}</strong></span>
+      </div>
+
+      <div class="top-announcement">
+        Free standard delivery on orders over ₹1,999
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="db-pill" title="Database connection status">
+          ● {{ active_db_name }}
+        </span>
+        <a href="#locationModal" class="btn-location-link" onclick="openModal('locationModal'); return false;" style="color:#fbcfe8; font-size:0.8rem; text-decoration:underline;">
+          Find Boutiques
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Luxury Header -->
+  <header class="main-header">
+    <div class="container header-container">
+      <!-- Brand Logo -->
+      <a href="{% url 'store:home' %}" class="brand-logo">
+        <span class="brand-title">AURA LUXE</span>
+        <span class="brand-tagline">Fashion • Skincare • Beauty</span>
+      </a>
+
+      <!-- Search Bar with Visual Search Action -->
+      <div class="search-form-wrap">
+        <form action="{% url 'store:catalog' %}" method="GET" class="search-form">
+          <input type="text" name="q" class="search-input" placeholder="Search silk gowns, ceramide serums, velvet lipsticks..." value="{{ request.GET.q|default:'' }}">
+          
+          <div class="search-actions">
+            <!-- Visual Search Trigger Button -->
+            <button type="button" class="btn-visual-search js-open-visual-search" title="Search similar products by taking a photo or uploading an image">
+              <span>📷 Visual Search</span>
+            </button>
+
+            <button type="submit" class="search-submit-btn" aria-label="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Action Items (Account, Wishlist, Bag) -->
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:profile' %}" class="action-item" title="My Account">
+            <span class="action-icon">👤</span>
+            <span>{{ user.first_name|default:user.username|truncatechars:12 }}</span>
+          </a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="action-item" title="Sign In">
+            <span class="action-icon">👤</span>
+            <span>Sign In</span>
+          </a>
+        {% endif %}
+
+        <a href="{% url 'accounts:wishlist' %}" class="action-item" title="Wishlist">
+          <span class="action-icon">🤍</span>
+          <span class="badge-count js-wishlist-count" style="display:{% if wishlist_count %}flex{% else %}none{% endif %};">{{ wishlist_count }}</span>
+        </a>
+
+        <a href="#cartDrawer" class="action-item js-open-cart-drawer" title="Shopping Bag">
+          <span class="action-icon">🛍️</span>
+          <span class="badge-count js-cart-count" style="{% if cart|length == 0 %}display:none;{% endif %}">
+            {{ cart|length }}
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Department Navigation Bar -->
+    <nav class="dept-nav-bar">
+      <div class="container">
+        <ul class="dept-nav-list">
+          <li class="dept-nav-item">
+            <a href="{% url 'store:catalog' %}" class="dept-nav-link">
+              <span>All Collections</span>
+            </a>
+          </li>
+
+          {% for dept in all_departments %}
+            <li class="dept-nav-item">
+              <a href="{{ dept.get_absolute_url }}" class="dept-nav-link">
+                <span>{{ dept.icon }} {{ dept.name }}</span>
+              </a>
+
+              <!-- Mega Menu Dropdown -->
+              {% if dept.categories.all %}
+                <div class="mega-menu">
+                  <div class="mega-menu-title">{{ dept.name }} Curations</div>
+                  <ul class="mega-menu-list">
+                    {% for cat in dept.categories.all %}
+                      <li>
+                        <a href="{{ cat.get_absolute_url }}" class="mega-menu-link">
+                          <span>{{ cat.name }}</span>
+                          <span style="font-size:0.75rem; color:#94a3b8;">→</span>
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+
+          <li class="dept-nav-item">
+            <a href="{% url 'store:catalog' %}?sort=newest" class="dept-nav-link" style="color:var(--rose-primary);">
+              <span>✨ New Arrivals</span>
+            </a>
+          </li>
+
+          <li class="dept-nav-item" style="margin-left:auto;">
+            <button type="button" class="dept-nav-link js-open-visual-search" style="color:var(--rose-primary);">
+              <span>📸 Visual Match Tool</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Django Messages Alert Banner -->
+  {% if messages %}
+    <div class="container" style="margin-top:16px;">
+      {% for msg in messages %}
+        <div class="toast toast-{{ msg.tags }}" style="max-width:100%; animation:none; margin-bottom:10px;">
+          <span>{{ msg }}</span>
+          <button type="button" onclick="this.parentElement.remove()" style="opacity:0.6;">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main Content Block -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Slide-out Cart Drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-label="Shopping Bag">
+    <div class="cart-drawer-header">
+      <h2 class="cart-drawer-title">Shopping Bag</h2>
+      <button type="button" class="btn-close-drawer js-close-cart-drawer" aria-label="Close Bag">✕</button>
+    </div>
+
+    <!-- Free Shipping Meter -->
+    <div class="shipping-progress-wrap">
+      <div id="cartDrawerProgressText">
+        {% if cart.is_free_shipping and cart|length > 0 %}
+          ✨ You have unlocked <strong>Free Express Delivery!</strong>
+        {% else %}
+          Add <strong>₹{{ cart.free_shipping_remaining }}</strong> more for free standard delivery
+        {% endif %}
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="cartDrawerProgressFill" style="width: {{ cart.free_shipping_progress }}%;"></div>
+      </div>
+    </div>
+
+    <!-- Cart Items Scrollable Body -->
+    <div class="cart-drawer-body" id="cartDrawerItems">
+      {% for item in cart %}
+        <div class="cart-item-card" data-key="{{ item.key }}">
+          <img src="{{ item.product.display_image }}" alt="{{ item.product.name }}" class="cart-item-img">
+          <div class="cart-item-info">
+            <a href="{{ item.product.get_absolute_url }}" class="cart-item-name">{{ item.product.name }}</a>
+            {% if item.variant %}
+              <span class="cart-item-variant">{{ item.variant.get_variant_type_display }}: <strong>{{ item.variant.name }}</strong></span>
+            {% endif %}
+            <div class="cart-item-bottom">
+              <div class="qty-control">
+                <button type="button" class="qty-btn" onclick="updateCartItemQuantity('{{ item.key }}', {{ item.quantity|add:'-1' }})">-</button>
+                <span class="qty-num">{{ item.quantity }}</span>
+                <button type="button" class="qty-btn" onclick="updateCartItemQuantity('{{ item.key }}', {{ item.quantity|add:'1' }})">+</button>
+              </div>
+              <span style="font-weight:700;">₹{{ item.total_price }}</span>
+              <button type="button" class="btn-remove-item" onclick="removeCartItem('{{ item.key }}')">Remove</button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div style="text-align:center; padding: 48px 12px; color:#64748b;">
+          <div style="font-size:2.8rem; margin-bottom:12px;">🛍️</div>
+          <p style="font-family: var(--font-serif); font-size:1.15rem; color:#0f172a; margin-bottom:6px;">Your bag is empty</p>
+          <p style="font-size:0.85rem; margin-bottom:20px;">Explore the season's newest arrivals in fashion and clean beauty.</p>
+          <a href="{% url 'store:catalog' %}" class="btn btn-dark btn-sm js-close-cart-drawer">Discover Collections</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="cart-drawer-footer">
+      <div class="cart-summary-row">
+        <span>Subtotal</span>
+        <span id="cartDrawerSubtotal">₹{{ cart.subtotal }}</span>
+      </div>
+      <div class="cart-summary-row" id="cartDrawerDiscountRow" style="{% if cart.discount_amount == 0 %}display:none;{% endif %} color:var(--rose-primary);">
+        <span>Promotional Savings</span>
+        <span id="cartDrawerDiscount">-₹{{ cart.discount_amount }}</span>
+      </div>
+      <div class="cart-summary-row">
+        <span>Estimated Delivery</span>
+        <span id="cartDrawerShipping">{% if cart.is_free_shipping %}FREE{% else %}₹{{ cart.shipping_cost }}{% endif %}</span>
+      </div>
+      <div class="cart-summary-total">
+        <span>Estimated Total</span>
+        <span id="cartDrawerTotal">₹{{ cart.grand_total }}</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a href="{% url 'orders:checkout' %}" class="btn btn-primary btn-full">Proceed to Checkout →</a>
+        <a href="{% url 'cart:cart_detail' %}" class="btn btn-outline btn-full btn-sm">View Full Bag Details</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Visual Search Modal (Local Media & Live Camera) -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal" id="visualSearchModal" role="dialog" aria-modal="true" aria-labelledby="vsModalTitle">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="vsModalTitle">Visual Similarity Search</h3>
+        <p class="modal-subtitle">Take a photo with your camera or upload an image to find similar fashion and beauty products.</p>
+      </div>
+      <button type="button" class="btn-close-drawer js-close-modal" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="vs-tabs">
+      <button type="button" class="vs-tab-btn active" id="tabCameraBtn">
+        <span>📷 Live Camera Shutter</span>
+      </button>
+      <button type="button" class="vs-tab-btn" id="tabUploadBtn">
+        <span>📁 Upload From Device</span>
+      </button>
+    </div>
+
+    <!-- Camera Viewfinder Tab -->
+    <div id="viewCamera">
+      <div class="camera-container">
+        <video id="cameraStream" autoplay playsinline muted></video>
+        <div class="camera-guide-box">Align Product in Frame</div>
+        
+        <div class="camera-controls-bar">
+          <button type="button" class="btn-shutter" id="btnShutter" title="Take Photo">
+            📸
+          </button>
+        </div>
+      </div>
+      <div id="cameraError" style="display:none; color:#ef4444; font-size:0.85rem; margin-top:10px; text-align:center;"></div>
+      <p style="font-size:0.8rem; color:#64748b; text-align:center; margin-top:14px;">
+        Point your webcam or phone camera towards clothing fabric, skincare bottles, or makeup shades.
+      </p>
+    </div>
+
+    <!-- File Upload Dropzone Tab -->
+    <div id="viewUpload" style="display:none;">
+      <div class="file-dropzone" id="fileDropzone">
+        <div class="dropzone-icon">📥</div>
+        <h4 style="font-weight:700; font-size:1.05rem; margin-bottom:6px;">Drag & Drop product photo here</h4>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Supports PNG, JPG, WEBP formats up to 10MB</p>
+        <button type="button" class="btn btn-outline btn-sm">Browse Local Files</button>
+      </div>
+    </div>
+
+    <!-- Hidden Form for Submission -->
+    <form id="visualSearchForm" action="{% url 'store:visual_search' %}" method="POST" enctype="multipart/form-data" style="display:none;">
+      {% csrf_token %}
+      <input type="file" id="visualSearchFileInput" name="image_file" accept="image/*">
+      <input type="hidden" id="hiddenCameraData" name="camera_data">
+    </form>
+
+    <!-- Loading Animation Overlay -->
+    <div id="visualSearchLoading" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.92); border-radius:var(--radius-lg); flex-direction:column; align-items:center; justify-content:center; gap:16px; z-index:99;">
+      <div style="font-size:2.5rem; animation: spin 1s linear infinite;">✨</div>
+      <div style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700;">Analyzing Visual Signatures...</div>
+      <p style="font-size:0.85rem; color:#64748b;">Extracting dominant color palettes and silhouette matching.</p>
+    </div>
+  </div>
+
+  <!-- Location Access & Store Locator Modal -->
+  <div class="modal" id="locationModal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">Delivery Location & Flagship Boutiques</h3>
+        <p class="modal-subtitle">Auto-detect your regional hub to unlock same-day express delivery.</p>
+      </div>
+      <button type="button" class="btn-close-drawer js-close-modal">✕</button>
+    </div>
+
+    <div class="location-hero-banner">
+      <div>
+        <div style="font-weight:700; font-size:0.95rem; color:#065f46; margin-bottom:4px;">Auto-Detect Delivery Area</div>
+        <div style="font-size:0.82rem; color:#047857;" id="locationDeliveryEstimate">Detect your location to calculate exact courier transit times.</div>
+      </div>
+      <button type="button" class="btn-gps-detect js-detect-location">
+        <span>📍 Use My GPS Location</span>
+      </button>
+    </div>
+
+    <h4 style="font-family:var(--font-serif); font-size:1.1rem; margin-bottom:14px;">Boutiques & Express Delivery Hubs</h4>
+    <div class="store-list-wrap" id="nearbyStoresList">
+      {% for store in header_stores %}
+        <div class="store-card">
+          <div>
+            <div class="store-name">{{ store.name }}</div>
+            <div style="font-size:0.84rem; color:#64748b; margin-bottom:4px;">{{ store.address }}, {{ store.city }}, {{ store.country }}</div>
+            <div style="font-size:0.78rem; color:#94a3b8;">{{ store.hours }}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="store-dist-badge">Regional Hub</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Main Luxury Footer -->
+  <footer class="main-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="brand-title" style="color:#ffffff; margin-bottom:8px;">AURA LUXE</div>
+          <p style="font-size:0.88rem; color:#94a3b8; max-width:320px; line-height:1.6; margin-bottom:20px;">
+            The pinnacle of modern refinement. Hand-finished garments, bio-fermented skincare formulations, and clean color cosmetics designed to empower your singular aura.
+          </p>
+          <div style="font-size:0.82rem; color:#64748b;">
+            📍 Operating boutique hubs in New York, Beverly Hills, London, Paris, and Mumbai.
+          </div>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Departments</h4>
+          <ul class="footer-links">
+            {% for dept in all_departments|slice:":3" %}
+              <li><a href="{{ dept.get_absolute_url }}">{{ dept.icon }} {{ dept.name }}</a></li>
+            {% empty %}
+              <li><a href="{% url 'store:catalog' %}">Browse Collections</a></li>
+            {% endfor %}
+            <li><a href="{% url 'store:catalog' %}?sort=newest">New Season Arrivals</a></li>
+            <li><a href="{% url 'store:visual_search' %}">Visual Similarity Match</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Client Services</h4>
+          <ul class="footer-links">
+            <li><a href="{% url 'accounts:profile' %}">Order Tracking</a></li>
+            <li><a href="{% url 'cart:cart_detail' %}">Complimentary Shipping</a></li>
+            <li><a href="#locationModal" onclick="openModal('locationModal'); return false;">Boutique Store Locator</a></li>
+            <li><a href="{% url 'accounts:wishlist' %}">Saved Wishlist</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Account</h4>
+          <ul class="footer-links">
+            {% if user.is_authenticated %}
+              <li><a href="{% url 'accounts:profile' %}">Client Dashboard</a></li>
+              <li><a href="{% url 'accounts:logout' %}">Sign Out</a></li>
+            {% else %}
+              <li><a href="{% url 'accounts:login' %}">Sign In / Register</a></li>
+            {% endif %}
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">The Inner Circle</h4>
+          <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:14px;">Receive private invitations to private sales and couture launches.</p>
+          <form onsubmit="event.preventDefault(); showToast('Thank you for subscribing to AURA LUXE.', 'success'); this.reset();" style="display:flex; gap:8px;">
+            <input type="email" placeholder="Your email address" required style="flex:1; padding:10px 14px; border-radius:var(--radius-sm); background:#1e293b; color:#ffffff; border:1px solid #334155; font-size:0.85rem;">
+            <button type="submit" class="btn btn-primary btn-sm">Join</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 AURA LUXE International Ltd. All rights reserved.</div>
+        <div style="display:flex; gap:20px;">
+          <span>Privacy Policy</span>
+          <span>Terms of Service</span>
+          <span>Sustainable Sourcing</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/geolocation.js' %}"></script>
+  <script src="{% static 'js/visual_search.js' %}"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

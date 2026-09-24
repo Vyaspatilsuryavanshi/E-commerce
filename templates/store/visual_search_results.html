@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Visual Similarity Results | AURA LUXE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:32px; padding-bottom:80px;">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="{% url 'store:home' %}">Home</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{% url 'store:visual_search' %}">Visual Search</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">Match Results</span>
+  </div>
+
+  <!-- Analysis Header Card -->
+  <div style="background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium); padding:32px; box-shadow:var(--shadow-md); margin-bottom:40px; display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:center;">
+    <!-- Uploaded Photo or Detected Swatch -->
+    <div style="position:relative; width:140px; height:140px; border-radius:var(--radius-md); overflow:hidden; border:2px solid var(--border-medium); box-shadow:var(--shadow-sm);">
+      {% if preview_data %}
+        <img src="{{ preview_data }}" alt="Uploaded Query Photo" style="width:100%; height:100%; object-fit:cover;">
+      {% else %}
+        <div style="width:100%; height:100%; background:{{ results.dominant_hex }}; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:2rem;">
+          📷
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <span class="match-meter-badge">✓ Visual Analysis Complete</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Showing closest silhouette and tone matches</span>
+      </div>
+
+      <h1 style="font-family:var(--font-serif); font-size:1.8rem; font-weight:700; margin-bottom:12px;">
+        Dominant Tone: <span style="color:{{ results.dominant_hex }};">{{ results.color_name }}</span> ({{ results.dominant_hex }})
+      </h1>
+
+      <!-- Color Palette -->
+      <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+        <span style="font-size:0.85rem; font-weight:600;">Extracted Color Signature:</span>
+        <div style="display:flex; gap:8px;">
+          {% for hex in results.palette %}
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; padding:3px 10px; border-radius:var(--radius-full); font-size:0.75rem; font-family:monospace; font-weight:700;">
+              <span style="width:12px; height:12px; border-radius:50%; background-color:{{ hex }};"></span>
+              {{ hex }}
+            </span>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="btn btn-outline btn-sm js-open-visual-search" style="margin-left:auto;">
+          📷 Try Another Photo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Matched Products Grid -->
+  <div>
+    <h2 style="font-family:var(--font-serif); font-size:1.6rem; font-weight:700; margin-bottom:24px;">
+      Matched Creations ({{ results.matches|length }} Found)
+    </h2>
+
+    <div class="product-grid">
+      {% for item in results.matches %}
+        {% with product=item.product %}
+          <div class="product-card">
+            <div class="product-thumb-wrap">
+              <a href="{{ product.get_absolute_url }}">
+                <img src="{{ product.display_image }}" alt="{{ product.name }}" class="product-thumb">
+              </a>
+              <span class="match-meter-badge" style="position:absolute; top:12px; left:12px; z-index:2;">
+                {{ item.match_label }}
+              </span>
+              <button type="button" class="btn-wishlist-float js-wishlist-toggle" data-product-id="{{ product.id }}">
+                🤍
+              </button>
+            </div>
+
+            <div class="product-info">
+              <div class="product-brand">{{ product.brand.name }} • {{ product.department.name }}</div>
+              <a href="{{ product.get_absolute_url }}" class="product-name">{{ product.name }}</a>
+
+              <div class="product-rating-row">
+                <span class="stars">★</span>
+                <span><strong>{{ product.rating }}</strong> ({{ product.review_count }})</span>
+                <span style="margin-left:auto; display:flex; align-items:center; gap:4px; font-size:0.75rem;">
+                  <span style="width:10px; height:10px; border-radius:50%; background-color:{{ product.dominant_color_hex }};"></span>
+                  Tone
+                </span>
+              </div>
+
+              <div class="product-price-row">
+                <span class="price-current">₹{{ product.price }}</span>
+                {% if product.is_on_sale %}
+                  <span class="price-compare">₹{{ product.compare_at_price }}</span>
+                {% endif %}
+              </div>
+
+              <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart">
+                {% csrf_token %}
+                <input type="hidden" name="quantity" value="1">
+                {% with first_variant=product.variants.first %}
+                  {% if first_variant %}
+                    <input type="hidden" name="variant_id" value="{{ first_variant.id }}">
+                  {% endif %}
+                {% endwith %}
+                <button type="submit" class="btn btn-dark btn-sm btn-full">
+                  <span>Add to Bag</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endwith %}
+      {% empty %}
+        <div style="grid-column:1 / -1; text-align:center; padding:64px 20px;">
+          <p>No similar products found. Please try another angle or different lighting.</p>
+          <button type="button" class="btn btn-primary js-open-visual-search" style="margin-top:16px;">
+            Open Camera
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

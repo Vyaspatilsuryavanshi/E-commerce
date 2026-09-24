@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order #{{ order.order_number }} | AURA LUXE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:48px 0 96px; max-width:860px;">
+  <div class="breadcrumbs">
+    <a href="{% url 'store:home' %}">Home</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{% url 'accounts:profile' %}">Dashboard</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">Order #{{ order.order_number }}</span>
+  </div>
+
+  <div style="background:#ffffff; border:1px solid var(--border-medium); border-radius:var(--radius-lg); padding:36px; box-shadow:var(--shadow-sm);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:20px; margin-bottom:24px;">
+      <div>
+        <h1 style="font-family:var(--font-serif); font-size:1.8rem; font-weight:700;">Order #{{ order.order_number }}</h1>
+        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">Date: {{ order.created_at|date:"F d, Y h:i A" }}</div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:0.85rem; font-weight:700; background:#ecfdf5; color:#059669; padding:4px 12px; border-radius:var(--radius-full);">
+          {{ order.get_status_display }}
+        </span>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">Courier: {{ order.tracking_number }}</div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <h3 style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; margin-bottom:14px;">Purchased Items</h3>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:28px;">
+      {% for item in order.items.all %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border-light);">
+          <div style="display:flex; gap:14px; align-items:center;">
+            {% if item.product %}
+              <img src="{{ item.product.display_image }}" alt="{{ item.product_name }}" style="width:50px; height:62px; object-fit:cover; border-radius:var(--radius-sm);">
+            {% endif %}
+            <div>
+              <div style="font-weight:700; font-size:0.95rem;">{{ item.product_name }}</div>
+              {% if item.variant_name %}
+                <div style="font-size:0.8rem; color:var(--text-muted);">{{ item.variant_name }}</div>
+              {% endif %}
+              <div style="font-size:0.8rem; color:#94a3b8;">{{ item.quantity }} × ₹{{ item.price }}</div>
+            </div>
+          </div>
+          <div style="font-weight:700;">₹{{ item.total_price }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Totals -->
+    <div style="max-width:300px; margin-left:auto; display:flex; flex-direction:column; gap:8px; font-size:0.9rem;">
+      <div style="display:flex; justify-content:space-between;">
+        <span>Subtotal</span>
+        <span>₹{{ order.subtotal }}</span>
+      </div>
+      {% if order.discount > 0 %}
+        <div style="display:flex; justify-content:space-between; color:var(--rose-primary);">
+          <span>Discount ({{ order.coupon_used }})</span>
+          <span>-₹{{ order.discount }}</span>
+        </div>
+      {% endif %}
+      <div style="display:flex; justify-content:space-between;">
+        <span>Shipping</span>
+        <span>₹{{ order.shipping_cost }}</span>
+      </div>
+      <div style="border-top:1px dashed var(--border-medium); padding-top:8px; display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800;">
+        <span>Total</span>
+        <span>₹{{ order.total }}</span>
+      </div>
+    </div>
+    {% if order.user_id and request.user.is_authenticated and order.user_id == request.user.id or not order.user_id and request.session.guest_order_number == order.order_number %}
+      <div style="margin-top:28px; padding-top:22px; border-top:1px solid var(--border-light); display:flex; gap:12px; flex-wrap:wrap;">
+        {% if order.can_cancel %}
+          <form method="post" action="{% url 'orders:cancel_order' order.order_number %}" onsubmit="return confirm('Cancel this order?');">
+            {% csrf_token %}
+            <button class="btn btn-outline" type="submit">Cancel Order</button>
+          </form>
+        {% endif %}
+        {% if request.user.is_authenticated and order.user_id == request.user.id and order.can_return %}
+          <details style="flex:1; min-width:280px;">
+            <summary class="btn btn-outline" style="display:inline-block; cursor:pointer;">Request Return</summary>
+            <form method="post" action="{% url 'orders:request_return' order.order_number %}" style="margin-top:14px; padding:16px; background:#f8fafc; border-radius:var(--radius-md);">
+              {% csrf_token %}
+              <div class="form-group"><label class="form-label">Reason</label><select class="form-control" name="reason" required>{% for value,label in return_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+              <div class="form-grid-2">
+                <div class="form-group"><label class="form-label">Item Condition</label><select class="form-control" name="item_condition" required>{% for value,label in return_conditions %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+                <div class="form-group"><label class="form-label">Refund Preference</label><select class="form-control" name="refund_preference" required>{% for value,label in refund_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+              </div>
+              <div class="form-group"><label class="form-label">Additional Notes</label><textarea class="form-control" name="comments" rows="3"></textarea></div>
+              <button class="btn btn-primary btn-sm" type="submit">Submit Return Request</button>
+            </form>
+          </details>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

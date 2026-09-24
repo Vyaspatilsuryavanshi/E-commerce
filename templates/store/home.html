@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AURA LUXE | Luxury Apparel, Clinical Skincare & Clean Beauty{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="container hero-grid">
+    <div>
+      <div class="hero-badge">
+        <span>✨ Autumn / Winter 2026 Collection</span>
+      </div>
+      <h1 class="hero-title">
+        The Art of <em>Refined Elegance</em> in Fashion & Beauty
+      </h1>
+      <p class="hero-subtitle">
+        Immerse yourself in heavy mulberry silks, bio-fermented peptide skincare, and featherlight luminous cosmetics. Intentionally formulated. Flawlessly crafted.
+      </p>
+      <div class="hero-cta-group">
+        <a href="{% url 'store:catalog' %}" class="btn btn-primary btn-lg">Explore Catalog</a>
+        <button type="button" class="btn btn-outline btn-lg js-open-visual-search" style="border-color:rgba(255,255,255,0.4); color:#ffffff; background:rgba(255,255,255,0.08);">
+          <span>📷 Visual Match Tool</span>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="hero-visual-card">
+        <img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=1000&q=80" alt="Elysian Silk Slip Gown" class="hero-visual-img">
+        <div class="hero-card-floating-badge">
+          <div>
+            <div style="font-size:0.75rem; text-transform:uppercase; color:#e11d48; font-weight:700;">Curator's Choice</div>
+            <div style="font-family:var(--font-serif); font-weight:700; font-size:1.05rem;">Elysian Mulberry Silk Gown</div>
+          </div>
+          <a href="{% if clothing_dept %}{{ clothing_dept.get_absolute_url }}{% else %}{% url 'store:catalog' %}{% endif %}" style="font-weight:700; font-size:0.88rem; color:#e11d48;">
+            Discover →
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Perks Bar -->
+<section class="perks-bar">
+  <div class="container perks-grid">
+    <div class="perk-item">
+      <div class="perk-icon">✈️</div>
+      <div>
+        <div class="perk-title">Express Local Delivery</div>
+        <div class="perk-sub">Complimentary over ₹1,999 with GPS courier dispatch</div>
+      </div>
+    </div>
+    <div class="perk-item">
+      <div class="perk-icon">📸</div>
+      <div>
+        <div class="perk-title">Visual Similarity Search</div>
+        <div class="perk-sub">Snap with camera or upload to match colors & cuts</div>
+      </div>
+    </div>
+    <div class="perk-item">
+      <div class="perk-icon">🌿</div>
+      <div>
+        <div class="perk-title">Certified Sustainable</div>
+        <div class="perk-sub">Grade 6A mulberry silk & clinically safe botanicals</div>
+      </div>
+    </div>
+    <div class="perk-item">
+      <div class="perk-icon">📍</div>
+      <div>
+        <div class="perk-title">Global Flagship Boutiques</div>
+        <div class="perk-sub">New York, Beverly Hills, London, Paris & Mumbai</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- The Three Departments Showcase -->
+<section class="section-pad">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Distinctive Collections</div>
+      <h2 class="section-title">Curated by World-Class Ateliers</h2>
+      <p class="section-desc">Experience three harmonious worlds: bespoke couture silhouettes, cellular skin health, and clean pigment artistry.</p>
+    </div>
+
+    <div class="dept-showcase-grid">
+      <!-- Clothing -->
+      <a href="{% if clothing_dept %}{{ clothing_dept.get_absolute_url }}{% else %}{% url 'store:catalog' %}{% endif %}" class="dept-card">
+        <img src="https://images.unsplash.com/photo-1539008835657-9e8e9680c956?auto=format&fit=crop&w=1000&q=80" alt="Haute Clothing" class="dept-card-bg">
+        <div class="dept-card-overlay"></div>
+        <div class="dept-content">
+          <span class="dept-icon-pill">👗</span>
+          <h3 class="dept-name">Couture & Apparel</h3>
+          <p class="dept-tagline">Heavyweight silks, virgin wool tailored blazers, and cloud cashmere.</p>
+          <span class="btn btn-outline btn-sm" style="background:#ffffff; color:#0f172a;">Explore Wardrobe →</span>
+        </div>
+      </a>
+
+      <!-- Skincare -->
+      <a href="{% if skincare_dept %}{{ skincare_dept.get_absolute_url }}{% else %}{% url 'store:catalog' %}{% endif %}" class="dept-card">
+        <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=1000&q=80" alt="Botanical Skincare" class="dept-card-bg">
+        <div class="dept-card-overlay"></div>
+        <div class="dept-content">
+          <span class="dept-icon-pill">✨</span>
+          <h3 class="dept-name">Botanical Skincare</h3>
+          <p class="dept-tagline">Multi-molecular hyaluronic elixirs, barrier ceramides, and dewy SPFs.</p>
+          <span class="btn btn-outline btn-sm" style="background:#ffffff; color:#0f172a;">Explore Rituals →</span>
+        </div>
+      </a>
+
+      <!-- Makeup -->
+      <a href="{% if makeup_dept %}{{ makeup_dept.get_absolute_url }}{% else %}{% url 'store:catalog' %}{% endif %}" class="dept-card">
+        <img src="https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=1000&q=80" alt="Clean Cosmetics" class="dept-card-bg">
+        <div class="dept-card-overlay"></div>
+        <div class="dept-content">
+          <span class="dept-icon-pill">💄</span>
+          <h3 class="dept-name">Clean Cosmetics</h3>
+          <p class="dept-tagline">Satin camellia-infused lipsticks, second-skin foundation, and foiled palettes.</p>
+          <span class="btn btn-outline btn-sm" style="background:#ffffff; color:#0f172a;">Explore Shades →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Trending Products Section -->
+<section class="section-pad" style="background:#ffffff; border-top:1px solid var(--border-light); border-bottom:1px solid var(--border-light);">
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:36px;">
+      <div>
+        <div class="section-tag">Most Coveted</div>
+        <h2 class="section-title" style="font-size:2rem; margin-bottom:0;">Trending This Season</h2>
+      </div>
+      <a href="{% url 'store:catalog' %}" style="font-weight:700; color:var(--rose-primary); font-size:0.92rem;">
+        View All Collections →
+      </a>
+    </div>
+
+    {% if trending_products %}
+    <div class="product-grid">
+      {% for product in trending_products %}
+        <div class="product-card">
+          <!-- Thumbnail & Badges -->
+          <div class="product-thumb-wrap">
+            <a href="{{ product.get_absolute_url }}">
+              <img src="{{ product.display_image }}" alt="{{ product.name }}" class="product-thumb" loading="lazy">
+            </a>
+
+            {% if product.is_on_sale %}
+              <span class="badge-float badge-sale">{{ product.discount_percent }}% OFF</span>
+            {% elif product.is_trending %}
+              <span class="badge-float badge-trending">Trending</span>
+            {% endif %}
+
+            <button type="button" class="btn-wishlist-float js-wishlist-toggle" data-product-id="{{ product.id }}" title="Save to Wishlist">
+              🤍
+            </button>
+          </div>
+
+          <!-- Product Details -->
+          <div class="product-info">
+            <div class="product-brand">{{ product.brand.name }}</div>
+            <a href="{{ product.get_absolute_url }}" class="product-name">{{ product.name }}</a>
+
+            <div class="product-rating-row">
+              <span class="stars">★</span>
+              <span><strong>{{ product.rating }}</strong> ({{ product.review_count }})</span>
+              <span style="margin-left:auto; font-size:0.75rem; color:#64748b;">{{ product.department.name }}</span>
+            </div>
+
+            <!-- Shade Swatches Preview for Makeup -->
+            {% if product.variants.all %}
+              <div class="shade-swatches-preview">
+                {% for v in product.variants.all|slice:":4" %}
+                  {% if v.hex_color %}
+                    <span class="shade-circle" style="background-color: {{ v.hex_color }};" title="{{ v.name }}"></span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="product-price-row">
+              <span class="price-current">₹{{ product.price }}</span>
+              {% if product.is_on_sale %}
+                <span class="price-compare">₹{{ product.compare_at_price }}</span>
+              {% endif %}
+            </div>
+
+            <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart">
+              {% csrf_token %}
+              <input type="hidden" name="quantity" value="1">
+              {% with first_variant=product.variants.first %}
+                {% if first_variant %}
+                  <input type="hidden" name="variant_id" value="{{ first_variant.id }}">
+                {% endif %}
+              {% endwith %}
+              <button type="submit" class="btn btn-dark btn-sm btn-full">
+                <span>Add to Bag</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div style="padding:42px 24px; border:1px dashed var(--border-medium); border-radius:var(--radius-lg); text-align:center; background:rgba(255,255,255,0.72);">
+        <h3 style="font-family:var(--font-serif); font-size:1.25rem; margin-bottom:6px;">Our seasonal edit is being prepared</h3>
+        <p style="color:var(--text-muted); margin-bottom:18px;">Explore the full catalog to discover available creations.</p>
+        <a href="{% url 'store:catalog' %}" class="btn btn-dark btn-sm">Browse Catalog</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Visual Search Promotional Banner -->
+<section class="container">
+  <div class="visual-search-banner">
+    <div>
+      <div style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--rose-primary); margin-bottom:8px;">
+        Camera & Local Media Intelligence
+      </div>
+      <h3 class="vs-banner-title">
+        Found an outfit or lipstick you adore? Search with a photo.
+      </h3>
+      <p class="vs-banner-desc">
+        Take a picture through your device's camera or upload any inspiration snapshot. Our visual similarity engine analyzes the color palette and silhouette to match similar garments, skincare, and cosmetics in our collection.
+      </p>
+      <div style="display:flex; gap:16px; align-items:center;">
+        <button type="button" class="btn btn-primary btn-lg js-open-visual-search">
+          <span>📷 Launch Camera Search</span>
+        </button>
+        <span style="font-size:0.85rem; color:#64748b;">Instant match confidence %</span>
+      </div>
+    </div>
+
+    <div style="position:relative; text-align:center;">
+      <div style="display:inline-block; background:#ffffff; padding:16px; border-radius:var(--radius-lg); box-shadow:var(--shadow-xl); max-width:340px; text-align:left;">
+        <img src="https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=600&q=80" alt="Visual Search Demo" style="border-radius:var(--radius-md); margin-bottom:12px; height:200px; width:100%; object-fit:cover;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.75rem; color:#64748b;">Detected Color Palette</div>
+            <div style="display:flex; gap:4px; margin-top:4px;">
+              <span style="width:16px; height:16px; border-radius:50%; background:#991B1B;"></span>
+              <span style="width:16px; height:16px; border-radius:50%; background:#BE123C;"></span>
+              <span style="width:16px; height:16px; border-radius:50%; background:#FB7185;"></span>
+            </div>
+          </div>
+          <span class="match-meter-badge">96% Match</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Bestsellers Showcase -->
+<section class="section-pad">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Iconic Best Sellers</div>
+      <h2 class="section-title">Tested & Adored Worldwide</h2>
+      <p class="section-desc">A curated edit of the creations most frequently highlighted by our client collection.</p>
+    </div>
+
+    {% if bestseller_products %}
+    <div class="product-grid">
+      {% for product in bestseller_products %}
+        <div class="product-card">
+          <div class="product-thumb-wrap">
+            <a href="{{ product.get_absolute_url }}">
+              <img src="{{ product.display_image }}" alt="{{ product.name }}" class="product-thumb" loading="lazy">
+            </a>
+            <span class="badge-float badge-new">Bestseller</span>
+            <button type="button" class="btn-wishlist-float js-wishlist-toggle" data-product-id="{{ product.id }}">
+              🤍
+            </button>
+          </div>
+
+          <div class="product-info">
+            <div class="product-brand">{{ product.brand.name }}</div>
+            <a href="{{ product.get_absolute_url }}" class="product-name">{{ product.name }}</a>
+
+            <div class="product-rating-row">
+              <span class="stars">★</span>
+              <span><strong>{{ product.rating }}</strong> ({{ product.review_count }})</span>
+            </div>
+
+            <div class="product-price-row">
+              <span class="price-current">₹{{ product.price }}</span>
+              {% if product.is_on_sale %}
+                <span class="price-compare">₹{{ product.compare_at_price }}</span>
+              {% endif %}
+            </div>
+
+            <form action="{% url 'cart:cart_add' product.id %}" method="POST" class="js-ajax-add-to-cart">
+              {% csrf_token %}
+              <input type="hidden" name="quantity" value="1">
+              {% with first_variant=product.variants.first %}
+                {% if first_variant %}
+                  <input type="hidden" name="variant_id" value="{{ first_variant.id }}">
+                {% endif %}
+              {% endwith %}
+              <button type="submit" class="btn btn-dark btn-sm btn-full">
+                <span>Add to Bag</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div style="padding:42px 24px; border:1px dashed var(--border-medium); border-radius:var(--radius-lg); text-align:center; background:rgba(255,255,255,0.72);">
+        <h3 style="font-family:var(--font-serif); font-size:1.25rem; margin-bottom:6px;">Client favorites will appear here</h3>
+        <p style="color:var(--text-muted); margin-bottom:18px;">Our best-selling collection becomes available as the catalog is populated.</p>
+        <a href="{% url 'store:catalog' %}" class="btn btn-dark btn-sm">Browse Catalog</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

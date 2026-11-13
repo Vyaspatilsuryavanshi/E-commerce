@@ -49,7 +49,7 @@ def catalog(request, department_slug=None, category_slug=None):
     if current_category:
         products = products.filter(category=current_category)
 
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:120]
     if query:
         products = products.filter(
             Q(name__icontains=query) | Q(short_description__icontains=query) | Q(description__icontains=query) |
@@ -64,25 +64,34 @@ def catalog(request, department_slug=None, category_slug=None):
     max_price = request.GET.get("max_price", "").strip()
     try:
         if min_price:
-            products = products.filter(price__gte=Decimal(min_price))
-    except InvalidOperation:
+            min_value = Decimal(min_price)
+            if not min_value.is_finite() or min_value < 0:
+                raise InvalidOperation
+            products = products.filter(price__gte=min_value)
+    except (InvalidOperation, ValueError):
         min_price = ""
     try:
         if max_price:
-            products = products.filter(price__lte=Decimal(max_price))
-    except InvalidOperation:
+            max_value = Decimal(max_price)
+            if not max_value.is_finite() or max_value < 0:
+                raise InvalidOperation
+            products = products.filter(price__lte=max_value)
+    except (InvalidOperation, ValueError):
         max_price = ""
 
     min_rating = request.GET.get("rating", "").strip()
     try:
         if min_rating:
-            products = products.filter(rating__gte=Decimal(min_rating))
-    except InvalidOperation:
+            rating_value = Decimal(min_rating)
+            if not rating_value.is_finite() or not Decimal("0") <= rating_value <= Decimal("5"):
+                raise InvalidOperation
+            products = products.filter(rating__gte=rating_value)
+    except (InvalidOperation, ValueError):
         min_rating = ""
 
     in_stock_only = request.GET.get("in_stock") == "1"
     if in_stock_only:
-        products = products.filter(Q(stock__gt=0) | Q(variants__stock__gt=0)).distinct()
+        products = products.filter(Q(variants__isnull=True, stock__gt=0) | Q(variants__stock__gt=0)).distinct()
 
     sort_by = request.GET.get("sort", "featured")
     sort_map = {

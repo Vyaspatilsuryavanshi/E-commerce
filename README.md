@@ -9,7 +9,7 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 - Product catalog with departments, categories, brands, filters, sorting, pagination, stock visibility, sales pricing, and product variants.
 - Session-backed shopping cart with quantity validation, stock validation, live price refresh, coupon codes, shipping calculation, and AJAX mini-cart support.
 - Guest and authenticated checkout with shipping-address validation, browser GPS auto-fill, delivery methods, Razorpay payment order creation, server-side payment verification, signed webhook handling, and transactional stock reservation.
-- Customer accounts, secure login/logout/register flows, saved profile/address information, and wishlist management.
+- Customer accounts, secure login/logout/register flows, email-based password reset, saved profile/address information, and wishlist management.
 - Order confirmation and order-detail pages protected against unauthorized order-number access.
 - Authenticated order cancellation with stock restoration and refund-state handling.
 - Delivered-order return requests with validation and return workflow statuses.
@@ -18,6 +18,12 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 - Local camera/file visual search powered by Pillow dominant-color extraction and product tag matching.
 - Django admin management for products, variants, reviews, orders, returns, customers, wishlists, brands, and store locations.
 - Production-oriented environment configuration, CSRF settings, secure cookies, HSTS, referrer policy, and explicit PostgreSQL selection.
+
+## Production static files and account email
+
+WhiteNoise serves collected static assets in production. The production static storage uses compressed, manifest-versioned assets; run `python manage.py collectstatic --noinput` during deployment. Product and department media uploads still need persistent object storage or a mounted persistent volume on the production host.
+
+Password reset uses Django’s signed, time-limited reset tokens. In development, reset emails are printed to the runserver console. For production, configure SMTP using `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL` in the host’s secret environment settings. Never commit SMTP credentials.
 
 ## Payment integration (Razorpay)
 

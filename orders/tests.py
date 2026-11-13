@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from cart.cart import Cart
 from store.models import Category, Department, Product, ProductVariant
-from .models import Order, OrderReturn
+from .models import Order, OrderItem, OrderReturn
 
 
 class OrderFlowTests(TestCase):

@@ -57,9 +57,10 @@ class AccountsTests(TestCase):
         self.assertIsNotNone(match)
 
         confirm_url = match.group(1)
-        confirm = self.client.get(confirm_url)
+        confirm = self.client.get(confirm_url, follow=True)
         self.assertEqual(confirm.status_code, 200)
-        changed = self.client.post(confirm_url, {
+        final_confirm_url = confirm.redirect_chain[-1][0] if confirm.redirect_chain else confirm_url
+        changed = self.client.post(final_confirm_url, {
             "new_password1": "NewStrongPass123!",
             "new_password2": "NewStrongPass123!",
         })

@@ -118,30 +118,50 @@ function renderNearbyStoresHTML(data) {
   const deliveryBadge = document.getElementById('locationDeliveryEstimate');
 
   if (deliveryBadge && data.delivery_estimate) {
-    deliveryBadge.innerHTML = `⚡ <strong>${data.delivery_estimate}</strong> delivery available from closest hub.`;
+    deliveryBadge.textContent = '⚡ ' + String(data.delivery_estimate) + ' delivery available from closest hub.';
   }
 
   if (!storeListElem) return;
+  storeListElem.replaceChildren();
 
-  if (data.stores && data.stores.length > 0) {
-    let html = '';
-    data.stores.forEach(store => {
-      html += `
-        <div class="store-card">
-          <div>
-            <div class="store-name">${store.name}</div>
-            <div style="font-size:0.84rem; color:#64748b; margin-bottom:4px;">${store.address}, ${store.city}</div>
-            <div style="font-size:0.78rem; color:#94a3b8;">${store.hours}</div>
-          </div>
-          <div style="text-align:right;">
-            <span class="store-dist-badge">${store.distance_text}</span>
-            ${store.express_available ? '<div style="font-size:0.75rem; color:#059669; font-weight:600; margin-top:6px;">⚡ Same-Day Courier</div>' : ''}
-          </div>
-        </div>
-      `;
-    });
-    storeListElem.innerHTML = html;
+  if (!Array.isArray(data.stores) || data.stores.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'store-empty-state';
+    empty.textContent = 'No nearby boutiques are available for this location yet.';
+    storeListElem.appendChild(empty);
+    return;
   }
+
+  data.stores.forEach((store) => {
+    const card = document.createElement('div');
+    card.className = 'store-card';
+    const details = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'store-name';
+    name.textContent = String(store.name ?? 'Boutique');
+    const address = document.createElement('div');
+    address.style.cssText = 'font-size:0.84rem; color:#64748b; margin-bottom:4px;';
+    address.textContent = [store.address, store.city].filter(Boolean).map(String).join(', ');
+    const hours = document.createElement('div');
+    hours.style.cssText = 'font-size:0.78rem; color:#94a3b8;';
+    hours.textContent = String(store.hours ?? '');
+    details.append(name, address, hours);
+
+    const meta = document.createElement('div');
+    meta.style.textAlign = 'right';
+    const distance = document.createElement('span');
+    distance.className = 'store-dist-badge';
+    distance.textContent = String(store.distance_text ?? '');
+    meta.appendChild(distance);
+    if (store.express_available) {
+      const express = document.createElement('div');
+      express.style.cssText = 'font-size:0.75rem; color:#059669; font-weight:600; margin-top:6px;';
+      express.textContent = '⚡ Same-Day Courier';
+      meta.appendChild(express);
+    }
+    card.append(details, meta);
+    storeListElem.appendChild(card);
+  });
 }
 
 /* ==========================================================================

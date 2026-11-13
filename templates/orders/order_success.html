@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Order Confirmed #{{ order.order_number }} | AURA LUXE{% endblock %}
+{% block title %}{% if order.status == "pending_payment" %}Payment Pending{% else %}Order Confirmed{% endif %} #{{ order.order_number }} | AURA LUXE{% endblock %}
 
 {% block content %}
 <div class="container" style="padding:48px 0 80px; max-width:920px;">
@@ -15,7 +15,7 @@
       {% if order.payment_method == "cod" or order.payment_status == "Paid" %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.{% else %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been created. Complete payment to confirm it.{% endif %}
     </p>
     <div style="display:inline-flex; gap:12px; font-size:0.85rem; background:#f8fafc; padding:8px 18px; border-radius:var(--radius-full); border:1px solid var(--border-medium);">
-      <span>Courier Tracking: <strong>{{ order.tracking_number }}</strong></span>
+      <span>{% if order.status == "pending_payment" %}Order Reference{% else %}Courier Tracking{% endif %}: <strong>{% if order.status == "pending_payment" %}{{ order.order_number }}{% else %}{{ order.tracking_number }}{% endif %}</strong></span>
       <span>•</span>
       <span>Transit: <strong>{{ order.delivery_estimate_text }}</strong></span>
       {% if order.location_autodetected %}
@@ -30,11 +30,11 @@
     <h3 style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700; margin-bottom:24px;">Live Courier Dispatch Timeline</h3>
 
     <div class="tracking-timeline">
-      <div class="tracking-step completed">
-        <div class="step-node">✓</div>
-        <div class="step-label">Order Placed</div>
+      <div class="tracking-step {% if order.status != "pending_payment" %}completed{% else %}active{% endif %}">
+        <div class="step-node">{% if order.status != "pending_payment" %}✓{% else %}1{% endif %}</div>
+        <div class="step-label">{% if order.status == "pending_payment" %}Awaiting Payment{% else %}Order Placed{% endif %}</div>
       </div>
-      <div class="tracking-step active">
+      <div class="tracking-step {% if order.status == "placed" or order.status == "processing" %}active{% endif %}">
         <div class="step-node">✨</div>
         <div class="step-label">Packaging in Atelier</div>
       </div>

@@ -60,6 +60,8 @@ class Order(models.Model):
 
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHODS, default='card')
     payment_status = models.CharField(max_length=30, default='Pending')
+    razorpay_order_id = models.CharField(max_length=64, blank=True, db_index=True)
+    razorpay_payment_id = models.CharField(max_length=64, blank=True, null=True, unique=True)
 
     # Financials in Indian Rupees (₹)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2)

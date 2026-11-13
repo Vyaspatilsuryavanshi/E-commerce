@@ -1,14 +1,22 @@
 import math
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
+from django.core import signing
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
+from django.urls import reverse
+from django.utils import timezone
 
-from .models import Brand, Category, Department, Product, ProductReview, ProductVariant, StoreLocation
+from .models import Brand, Category, Department, NewsletterSubscriber, Product, ProductReview, ProductVariant, StoreLocation
 from .visual_search import search_similar_products
 
 
@@ -233,3 +241,56 @@ def visual_search_view(request):
             return JsonResponse({"status": "success", "dominant_hex": results.get("dominant_hex"), "color_name": results.get("color_name"), "palette": results.get("palette"), "matches": matches})
         return render(request, "store/visual_search_results.html", {"results": results, "preview_data": camera_data if camera_data and camera_data.startswith("data:image") else None, "departments": Department.objects.all(), "selected_department": department_filter})
     return render(request, "store/visual_search.html", {"departments": Department.objects.all()})
+
+
+
+@require_POST
+def newsletter_subscribe(request):
+    email = request.POST.get("email", "").strip().lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        messages.error(request, "Enter a valid email address to join the mailing list.")
+        return redirect("store:home")
+
+    subscriber, _ = NewsletterSubscriber.objects.get_or_create(email=email)
+    if subscriber.is_active:
+        messages.info(request, "This email address is already subscribed.")
+        return redirect("store:home")
+
+    token = signing.dumps({"email": email}, salt="aura-luxe-newsletter-confirm")
+    confirm_url = request.build_absolute_uri(
+        reverse("store:newsletter_confirm", kwargs={"token": token})
+    )
+    try:
+        send_mail(
+            "Confirm your AURA LUXE mailing-list subscription",
+            f"Confirm your subscription within 24 hours using this link:\n\n{confirm_url}\n\nIf you did not request this, ignore this email.",
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+    except Exception:
+        messages.error(request, "We could not send the confirmation email. Please try again later.")
+        return redirect("store:home")
+
+    messages.success(request, "Check your inbox for a confirmation link. Your subscription is not active until you confirm.")
+    return redirect("store:home")
+
+
+@require_GET
+def newsletter_confirm(request, token):
+    try:
+        payload = signing.loads(token, salt="aura-luxe-newsletter-confirm", max_age=60 * 60 * 24)
+        email = payload.get("email", "").strip().lower()
+    except (signing.BadSignature, signing.SignatureExpired, AttributeError):
+        messages.error(request, "That mailing-list confirmation link is invalid or expired. Please subscribe again.")
+        return redirect("store:home")
+
+    subscriber = get_object_or_404(NewsletterSubscriber, email=email)
+    if not subscriber.is_active:
+        subscriber.is_active = True
+        subscriber.confirmed_at = timezone.now()
+        subscriber.save(update_fields=["is_active", "confirmed_at"])
+    messages.success(request, "Your AURA LUXE mailing-list subscription is confirmed.")
+    return redirect("store:home")

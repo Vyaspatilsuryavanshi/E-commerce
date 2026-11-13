@@ -45,7 +45,7 @@
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:12px; font-size:0.82rem;">
-            <span>{% if ord.status == "pending_payment" %}Payment due{% elif ord.status == "payment_review" %}Support review required{% else %}Tracking{% endif %}: <strong>{% if ord.status == "pending_payment" %}Awaiting payment{% elif ord.status == "payment_review" %}Contact support{% else %}{{ ord.tracking_number }}{% endif %}</strong></span>
+            <span>{% if ord.status == "pending_payment" %}Payment due{% elif ord.status == "payment_review" %}Support review required{% elif ord.tracking_number %}Tracking{% else %}Dispatch{% endif %}: <strong>{% if ord.status == "pending_payment" %}Awaiting payment{% elif ord.status == "payment_review" %}Contact support{% elif ord.tracking_number %}{{ ord.tracking_number }}{% else %}Not yet assigned{% endif %}</strong></span>
             <a href="{% url 'orders:order_detail' ord.order_number %}" style="color:var(--rose-primary); font-weight:700;">View Receipt →</a>
           </div>
         </div>

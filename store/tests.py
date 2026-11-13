@@ -84,6 +84,15 @@ class ReviewTests(TestCase):
 
 
 class VisualSearchSafetyTests(TestCase):
+    def setUp(self):
+        department = Department.objects.create(name="Safety Skincare", slug="safety-skincare")
+        category = Category.objects.create(department=department, name="Safety Serums", slug="safety-serums")
+        self.product = Product.objects.create(
+            department=department, category=category, name="Hydra Glow Serum", sku="SAFE-001",
+            short_description="Hydrating serum", description="Test product",
+            price=Decimal("1200.00"), stock=20,
+        )
+
     def test_visual_search_rejects_malformed_base64(self):
         result = search_similar_products("data:image/jpeg;base64,not-valid-base64!")
         self.assertIn("error", result)

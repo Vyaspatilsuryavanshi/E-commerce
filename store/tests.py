@@ -99,3 +99,21 @@ class VisualSearchSafetyTests(TestCase):
         result = search_similar_products(oversized)
         self.assertIn("error", result)
         self.assertEqual(result["matches"], [])
+
+
+    def test_in_stock_filter_respects_variant_inventory(self):
+        variant = ProductVariant.objects.create(
+            product=self.product, variant_type="size", name="M", stock=0,
+        )
+        response = self.client.get(reverse("store:catalog") + "?in_stock=1")
+        self.assertNotContains(response, "Hydra Glow Serum")
+
+        variant.stock = 2
+        variant.save(update_fields=["stock"])
+        response = self.client.get(reverse("store:catalog") + "?in_stock=1")
+        self.assertContains(response, "Hydra Glow Serum")
+
+    def test_catalog_ignores_non_finite_price_and_rating_filters(self):
+        response = self.client.get(reverse("store:catalog") + "?min_price=NaN&max_price=Infinity&rating=NaN")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hydra Glow Serum")

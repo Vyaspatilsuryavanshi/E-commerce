@@ -58,7 +58,8 @@ class Order(models.Model):
 
     delivery_method = models.CharField(max_length=30, choices=DELIVERY_METHODS, default='standard')
     delivery_estimate_text = models.CharField(max_length=150, default='Estimated delivery within 2-3 business days')
-    courier_partner = models.CharField(max_length=80, default='Blue Dart Luxury Express')
+    courier_partner = models.CharField(max_length=80, default='Not assigned')
+    tracking_url = models.URLField(max_length=500, blank=True)
 
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHODS, default='card')
     payment_status = models.CharField(max_length=30, default='Pending')
@@ -89,8 +90,6 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = f"AL-{uuid.uuid4().hex[:8].upper()}"
-        if not self.tracking_number:
-            self.tracking_number = f"BD-{uuid.uuid4().hex[:10].upper()}"
         super().save(*args, **kwargs)
 
     @property

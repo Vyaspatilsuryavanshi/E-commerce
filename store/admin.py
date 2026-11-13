@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Department, Category, Brand, Product, ProductVariant, ProductReview, StoreLocation
+from .models import Department, Category, Brand, NewsletterSubscriber, Product, ProductVariant, ProductReview, StoreLocation
 
 
 class CategoryInline(admin.TabularInline):
@@ -64,3 +64,12 @@ class ProductReviewAdmin(admin.ModelAdmin):
 class StoreLocationAdmin(admin.ModelAdmin):
     list_display = ('name', 'city', 'state', 'country', 'latitude', 'longitude', 'is_active')
     list_filter = ('city', 'country', 'is_active')
+
+
+
+@admin.register(NewsletterSubscriber)
+class NewsletterSubscriberAdmin(admin.ModelAdmin):
+    list_display = ("email", "is_active", "created_at", "confirmed_at")
+    list_filter = ("is_active", "created_at")
+    search_fields = ("email",)
+    readonly_fields = ("created_at", "confirmed_at")

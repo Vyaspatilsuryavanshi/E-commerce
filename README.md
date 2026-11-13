@@ -8,8 +8,9 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 
 - Product catalog with departments, categories, brands, filters, sorting, pagination, stock visibility, sales pricing, and product variants.
 - Session-backed shopping cart with quantity validation, stock validation, live price refresh, coupon codes, shipping calculation, and AJAX mini-cart support.
-- Guest and authenticated checkout with shipping-address validation, browser GPS auto-fill, delivery methods, payment-method selection, order creation, and transactional stock deduction.
-- Customer accounts, secure login/logout/register flows, saved profile/address information, and wishlist management.
+- Guest and authenticated checkout with shipping-address validation, browser GPS auto-fill, delivery methods, Razorpay payment order creation, server-side payment verification, signed webhook handling, and transactional stock reservation.
+- Customer accounts, secure login/logout/register flows, email-based password reset, saved profile/address information, and wishlist management.
+- Double-opt-in mailing-list subscriptions with expiring email confirmation links and admin management.
 - Order confirmation and order-detail pages protected against unauthorized order-number access.
 - Authenticated order cancellation with stock restoration and refund-state handling.
 - Delivered-order return requests with validation and return workflow statuses.
@@ -19,9 +20,33 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 - Django admin management for products, variants, reviews, orders, returns, customers, wishlists, brands, and store locations.
 - Production-oriented environment configuration, CSRF settings, secure cookies, HSTS, referrer policy, and explicit PostgreSQL selection.
 
-## Important payment note
+## Production static files and account email
 
-The checkout supports payment method selection and records a clear **demo payment state** for card/UPI/wallet methods. It does **not** connect to a real payment gateway. To accept real money, integrate a provider such as Razorpay, Stripe, PayU, or another gateway and verify payment callbacks/webhooks server-side before marking an order as paid.
+WhiteNoise serves collected static assets in production. The production static storage uses compressed, manifest-versioned assets; run `python manage.py collectstatic --noinput` during deployment. Product and department media uploads still need persistent object storage or a mounted persistent volume on the production host. Courier tracking is entered by store staff in Django admin after dispatch; no carrier API or live courier tracking integration is claimed.
+
+Password reset uses Django’s signed, time-limited reset tokens. The footer mailing-list form also uses double opt-in: addresses are stored as inactive until the recipient confirms the email link, which expires after 24 hours. In development, reset emails are printed to the runserver console. For production, configure SMTP using `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL` in the host’s secret environment settings. Never commit SMTP credentials.
+
+## Payment integration (Razorpay)
+
+Online checkout is integrated with Razorpay Checkout. The server creates a Razorpay order using the final INR total, verifies the checkout signature, fetches the payment from Razorpay and checks the order ID, amount, currency and captured status before marking an order paid. The signed `payment.captured` webhook provides a second confirmation path. Unpaid online orders remain in the `pending_payment` state and cannot enter fulfillment.
+
+Start with Razorpay Test Mode credentials. Add these values to your local `.env` and to your hosting provider's secret environment variables:
+
+```env
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
+```
+
+In the Razorpay Dashboard, configure a webhook to:
+
+```text
+https://your-domain.example/orders/payment/razorpay/webhook/
+```
+
+Subscribe to the `payment.captured` event and use the exact webhook secret configured in `RAZORPAY_WEBHOOK_SECRET`. Never commit real credentials or use live keys before completing test-mode checkout, webhook and refund operations. Cash on Delivery remains available when selected.
+
+**Pending-payment expiry:** the `expire_pending_orders` management command checks aged Razorpay orders against the provider before releasing reserved inventory. It expires unpaid orders after 30 minutes by default, leaves authorized/in-flight payments untouched, reconciles captured payments, and flags amount mismatches for review. If Razorpay is unavailable, the order and stock reservation are left untouched. Set `PENDING_PAYMENT_EXPIRY_MINUTES` to change the grace period. Run this command from a scheduled worker/cron every 5–10 minutes; the command is safe to rerun. Refunds for already-paid orders are not automated; paid orders cannot be cancelled through the customer self-service action.
 
 ## Setup on Windows PowerShell
 
@@ -41,7 +66,7 @@ pip install -r requirements.txt
 
 ### 3. Configure environment variables
 
-Copy `.env.example` to `.env` and set at least a strong `SECRET_KEY` for production.
+Copy `.env.example` to `.env`. For local development, keep `DEBUG=True`. Set a strong `SECRET_KEY`, production hosts, database credentials and Razorpay Test Mode credentials only when testing online payments.
 
 For local SQLite development:
 
@@ -104,6 +129,22 @@ python manage.py collectstatic --noinput
 python manage.py check_db
 ```
 
+### 7. Expire abandoned unpaid orders
+
+Run this command manually to process online orders that have been unpaid for at least 30 minutes:
+
+```powershell
+python manage.py expire_pending_orders
+```
+
+Preview eligible orders without changing inventory:
+
+```powershell
+python manage.py expire_pending_orders --dry-run
+```
+
+For production, schedule `python manage.py expire_pending_orders` every 5–10 minutes using a persistent worker or the host scheduler. Keep the provider credentials configured; if the provider cannot be reached, the command deliberately leaves the order and reserved stock unchanged.
+
 ## Project structure
 
 ```text
@@ -111,7 +152,7 @@ E-commerce/
 ├── ecommerce_core/        # Django settings, URLs, ASGI/WSGI
 ├── store/                 # Catalog, reviews, visual search, stores
 ├── cart/                  # Session cart, coupons, shipping
-├── orders/                # Checkout, stock, order lifecycle, returns
+├── orders/                # Checkout, Razorpay payments, stock, order lifecycle, returns
 ├── accounts/              # Authentication, profiles, wishlist
 ├── static/                # CSS, JavaScript, placeholder assets
 ├── templates/             # Server-rendered pages
@@ -122,4 +163,4 @@ E-commerce/
 
 ## Production checklist
 
-Set `DEBUG=False`, provide a long random `SECRET_KEY`, configure `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`, use PostgreSQL, serve static/media through a proper web server or object storage, configure HTTPS, and integrate a real payment gateway before accepting live payments.
+Set `DEBUG=False`, provide a long random `SECRET_KEY`, configure `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`, use PostgreSQL, serve static/media through a proper web server or object storage, configure HTTPS, add Razorpay live credentials only after successful Test Mode validation, register the signed webhook, and define an automated expiry policy for abandoned pending-payment reservations. Configure a real refund workflow before allowing paid-order returns to be marked refunded.

@@ -23,10 +23,15 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <span>${message}</span>
-    <button type="button" style="font-size:1.1rem; opacity:0.6;" onclick="this.parentElement.remove()">✕</button>
-  `;
+  const messageText = document.createElement('span');
+  messageText.textContent = String(message ?? '');
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.textContent = '✕';
+  closeButton.setAttribute('aria-label', 'Dismiss notification');
+  closeButton.style.cssText = 'font-size:1.1rem; opacity:0.6;';
+  closeButton.addEventListener('click', () => toast.remove());
+  toast.append(messageText, closeButton);
 
   container.appendChild(toast);
 
@@ -75,6 +80,18 @@ function initCartDrawer() {
   if (backdrop) {
     backdrop.addEventListener('click', closeDrawer);
   }
+  drawer.addEventListener('click', (event) => {
+    const actionButton = event.target.closest('[data-cart-action]');
+    if (!actionButton) return;
+    const card = actionButton.closest('.cart-item-card');
+    const key = card?.dataset.key;
+    if (!key) return;
+    const quantity = Number(card.querySelector('.qty-num')?.textContent || 0);
+    if (actionButton.dataset.cartAction === 'increase') updateCartItemQuantity(key, quantity + 1);
+    else if (actionButton.dataset.cartAction === 'decrease') updateCartItemQuantity(key, quantity - 1);
+    else if (actionButton.dataset.cartAction === 'remove') removeCartItem(key);
+    else if (actionButton.dataset.cartAction === 'close') closeDrawer();
+  });
 
   // Intercept Ajax Add To Cart forms
   document.addEventListener('submit', (e) => {
@@ -151,69 +168,124 @@ function renderCartDrawerHTML(cart) {
   const progressFill = document.getElementById('cartDrawerProgressFill');
   const progressText = document.getElementById('cartDrawerProgressText');
 
-  if (!itemsContainer) return;
+  if (!itemsContainer || !cart || !Array.isArray(cart.items)) return;
+  itemsContainer.replaceChildren();
 
   if (cart.items.length === 0) {
-    itemsContainer.innerHTML = `
-      <div style="text-align:center; padding: 48px 12px; color:#64748b;">
-        <div style="font-size:2.8rem; margin-bottom:12px;">🛍️</div>
-        <p style="font-family: var(--font-serif); font-size:1.15rem; color:#0f172a; margin-bottom:6px;">Your bag is empty</p>
-        <p style="font-size:0.85rem; margin-bottom:20px;">Explore the season's newest arrivals in fashion and clean beauty.</p>
-        <a href="/catalog/" class="btn btn-dark btn-sm js-close-cart-drawer">Discover Collections</a>
-      </div>
-    `;
+    const empty = document.createElement('div');
+    empty.className = 'cart-empty-state';
+    const icon = document.createElement('div');
+    icon.className = 'cart-empty-icon';
+    icon.textContent = '🛍️';
+    const title = document.createElement('p');
+    title.className = 'cart-empty-title';
+    title.textContent = 'Your bag is empty';
+    const description = document.createElement('p');
+    description.className = 'cart-empty-description';
+    description.textContent = "Explore the season's newest arrivals in fashion and clean beauty.";
+    const link = document.createElement('a');
+    link.href = '/catalog/';
+    link.className = 'btn btn-dark btn-sm';
+    link.textContent = 'Discover Collections';
+    empty.append(icon, title, description, link);
+    itemsContainer.appendChild(empty);
     if (subtotalElem) subtotalElem.textContent = '₹0.00';
     if (shippingElem) shippingElem.textContent = '₹0.00';
     if (totalElem) totalElem.textContent = '₹0.00';
-    if (progressText) progressText.innerHTML = 'Add items to unlock free standard delivery over ₹1,999';
+    if (progressText) progressText.textContent = 'Add items to unlock free standard delivery over ₹1,999';
     if (progressFill) progressFill.style.width = '0%';
+    if (discountRow) discountRow.style.display = 'none';
     return;
   }
 
-  // Render items
-  let html = '';
-  cart.items.forEach(item => {
-    html += `
-      <div class="cart-item-card" data-key="${item.key}">
-        <img src="${item.product_image}" alt="${item.product_name}" class="cart-item-img">
-        <div class="cart-item-info">
-          <a href="${item.product_url}" class="cart-item-name">${item.product_name}</a>
-          ${item.variant_name ? `<span class="cart-item-variant">${item.variant_type}: <strong>${item.variant_name}</strong></span>` : ''}
-          <div class="cart-item-bottom">
-            <div class="qty-control">
-              <button type="button" class="qty-btn" onclick="updateCartItemQuantity('${item.key}', ${item.quantity - 1})">-</button>
-              <span class="qty-num">${item.quantity}</span>
-              <button type="button" class="qty-btn" onclick="updateCartItemQuantity('${item.key}', ${item.quantity + 1})">+</button>
-            </div>
-            <span style="font-weight:700; font-size:0.95rem;">₹${item.total_price}</span>
-            <button type="button" class="btn-remove-item" onclick="removeCartItem('${item.key}')">Remove</button>
-          </div>
-        </div>
-      </div>
-    `;
+  cart.items.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'cart-item-card';
+    card.dataset.key = String(item.key ?? '');
+
+    const image = document.createElement('img');
+    image.className = 'cart-item-img';
+    image.alt = String(item.product_name ?? 'Product');
+    image.loading = 'lazy';
+    const imageUrl = String(item.product_image ?? '');
+    if (imageUrl.startsWith('/') || imageUrl.startsWith('https://')) image.src = imageUrl;
+
+    const info = document.createElement('div');
+    info.className = 'cart-item-info';
+    const name = document.createElement('a');
+    name.className = 'cart-item-name';
+    const productUrl = String(item.product_url ?? '');
+    name.href = productUrl.startsWith('/') ? productUrl : '/catalog/';
+    name.textContent = String(item.product_name ?? 'Product');
+    info.appendChild(name);
+
+    if (item.variant_name) {
+      const variant = document.createElement('span');
+      variant.className = 'cart-item-variant';
+      variant.textContent = String(item.variant_type ?? 'Option') + ': ' + String(item.variant_name);
+      info.appendChild(variant);
+    }
+
+    const bottom = document.createElement('div');
+    bottom.className = 'cart-item-bottom';
+    const controls = document.createElement('div');
+    controls.className = 'qty-control';
+
+    const decrease = document.createElement('button');
+    decrease.type = 'button';
+    decrease.className = 'qty-btn';
+    decrease.dataset.cartAction = 'decrease';
+    decrease.setAttribute('aria-label', 'Decrease quantity of ' + name.textContent);
+    decrease.textContent = '−';
+
+    const quantity = document.createElement('span');
+    quantity.className = 'qty-num';
+    quantity.textContent = String(Number(item.quantity) || 0);
+
+    const increase = document.createElement('button');
+    increase.type = 'button';
+    increase.className = 'qty-btn';
+    increase.dataset.cartAction = 'increase';
+    increase.setAttribute('aria-label', 'Increase quantity of ' + name.textContent);
+    increase.textContent = '+';
+
+    controls.append(decrease, quantity, increase);
+
+    const price = document.createElement('span');
+    price.style.cssText = 'font-weight:700; font-size:0.95rem;';
+    price.textContent = '₹' + String(item.total_price ?? '0.00');
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn-remove-item';
+    remove.dataset.cartAction = 'remove';
+    remove.textContent = 'Remove';
+
+    bottom.append(controls, price, remove);
+    info.appendChild(bottom);
+    card.append(image, info);
+    itemsContainer.appendChild(card);
   });
 
-  itemsContainer.innerHTML = html;
-  if (subtotalElem) subtotalElem.textContent = `₹${cart.subtotal}`;
-  if (shippingElem) shippingElem.textContent = cart.is_free_shipping ? 'FREE' : `₹${cart.shipping}`;
-  if (totalElem) totalElem.textContent = `₹${cart.grand_total}`;
+  if (subtotalElem) subtotalElem.textContent = '₹' + String(cart.subtotal ?? '0.00');
+  if (shippingElem) shippingElem.textContent = cart.is_free_shipping ? 'FREE' : '₹' + String(cart.shipping ?? '0.00');
+  if (totalElem) totalElem.textContent = '₹' + String(cart.grand_total ?? '0.00');
 
   if (discountRow && discountElem) {
-    if (parseFloat(cart.discount) > 0) {
+    if (Number(cart.discount) > 0) {
       discountRow.style.display = 'flex';
-      discountElem.textContent = `-₹${cart.discount}`;
+      discountElem.textContent = '-₹' + String(cart.discount);
     } else {
       discountRow.style.display = 'none';
     }
   }
 
   if (progressFill && progressText) {
-    progressFill.style.width = `${cart.free_shipping_progress}%`;
-    if (cart.is_free_shipping) {
-      progressText.innerHTML = '✨ You have unlocked <strong>Free Express Shipping!</strong>';
-    } else {
-      progressText.innerHTML = `Add <strong>₹${cart.free_shipping_remaining}</strong> more for free standard delivery`;
-    }
+    const progress = Math.min(100, Math.max(0, Number(cart.free_shipping_progress) || 0));
+    progressFill.style.width = progress + '%';
+    progressText.textContent = cart.is_free_shipping
+      ? '✨ You have unlocked Free Express Shipping!'
+      : 'Add ₹' + String(cart.free_shipping_remaining ?? '0.00') + ' more for free standard delivery';
   }
 }
 

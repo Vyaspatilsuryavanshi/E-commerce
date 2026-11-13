@@ -20,11 +20,27 @@
         <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">Date: {{ order.created_at|date:"F d, Y h:i A" }}</div>
       </div>
       <div style="text-align:right;">
-        <span style="font-size:0.85rem; font-weight:700; background:#ecfdf5; color:#059669; padding:4px 12px; border-radius:var(--radius-full);">
+        <span style="font-size:0.85rem; font-weight:700; {% if order.status == "cancelled" or order.status == "payment_review" %}background:#fffbeb; color:#b45309;{% elif order.status == "pending_payment" %}background:#fff7ed; color:#9a3412;{% else %}background:#ecfdf5; color:#059669;{% endif %} padding:4px 12px; border-radius:var(--radius-full);">
           {{ order.get_status_display }}
         </span>
-        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">Courier: {{ order.tracking_number }}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">{% if order.status == "pending_payment" %}Payment awaiting{% elif order.status == "payment_review" %}Payment review required{% elif order.tracking_number %}Courier: {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ order.tracking_number }}</a>{% else %}{{ order.tracking_number }}{% endif %}{% else %}Tracking details pending dispatch{% endif %}</div>
       </div>
+    </div>
+
+    <div style="margin:18px 0 26px; padding:16px; background:#f8fafc; border:1px solid var(--border-light); border-radius:var(--radius-md);">
+      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <span style="font-size:0.86rem; color:var(--text-muted);">Payment method</span>
+        <strong style="font-size:0.88rem;">{{ order.get_payment_method_display }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:8px;">
+        <span style="font-size:0.86rem; color:var(--text-muted);">Payment status</span>
+        <strong style="font-size:0.88rem;">{{ order.payment_status }}</strong>
+      </div>
+      {% if order.status == "pending_payment" %}
+        <p style="font-size:0.84rem; color:#9a3412; margin-top:10px;">Complete payment to confirm this order. Inventory is temporarily reserved.</p>
+      {% elif order.status == "payment_review" %}
+        <p style="font-size:0.84rem; color:#92400e; margin-top:10px;">Your payment needs manual review. Please contact store support and quote order #{{ order.order_number }}.</p>
+      {% endif %}
     </div>
 
     <!-- Items -->

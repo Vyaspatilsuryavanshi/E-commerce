@@ -1,14 +1,22 @@
 import math
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
+from django.core import signing
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
+from django.urls import reverse
+from django.utils import timezone
 
-from .models import Brand, Category, Department, Product, ProductReview, ProductVariant, StoreLocation
+from .models import Brand, Category, Department, NewsletterSubscriber, Product, ProductReview, ProductVariant, StoreLocation
 from .visual_search import search_similar_products
 
 
@@ -49,7 +57,7 @@ def catalog(request, department_slug=None, category_slug=None):
     if current_category:
         products = products.filter(category=current_category)
 
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:120]
     if query:
         products = products.filter(
             Q(name__icontains=query) | Q(short_description__icontains=query) | Q(description__icontains=query) |
@@ -64,25 +72,34 @@ def catalog(request, department_slug=None, category_slug=None):
     max_price = request.GET.get("max_price", "").strip()
     try:
         if min_price:
-            products = products.filter(price__gte=Decimal(min_price))
-    except InvalidOperation:
+            min_value = Decimal(min_price)
+            if not min_value.is_finite() or min_value < 0:
+                raise InvalidOperation
+            products = products.filter(price__gte=min_value)
+    except (InvalidOperation, ValueError):
         min_price = ""
     try:
         if max_price:
-            products = products.filter(price__lte=Decimal(max_price))
-    except InvalidOperation:
+            max_value = Decimal(max_price)
+            if not max_value.is_finite() or max_value < 0:
+                raise InvalidOperation
+            products = products.filter(price__lte=max_value)
+    except (InvalidOperation, ValueError):
         max_price = ""
 
     min_rating = request.GET.get("rating", "").strip()
     try:
         if min_rating:
-            products = products.filter(rating__gte=Decimal(min_rating))
-    except InvalidOperation:
+            rating_value = Decimal(min_rating)
+            if not rating_value.is_finite() or not Decimal("0") <= rating_value <= Decimal("5"):
+                raise InvalidOperation
+            products = products.filter(rating__gte=rating_value)
+    except (InvalidOperation, ValueError):
         min_rating = ""
 
     in_stock_only = request.GET.get("in_stock") == "1"
     if in_stock_only:
-        products = products.filter(Q(stock__gt=0) | Q(variants__stock__gt=0)).distinct()
+        products = products.filter(Q(variants__isnull=True, stock__gt=0) | Q(variants__stock__gt=0)).distinct()
 
     sort_by = request.GET.get("sort", "featured")
     sort_map = {
@@ -224,3 +241,56 @@ def visual_search_view(request):
             return JsonResponse({"status": "success", "dominant_hex": results.get("dominant_hex"), "color_name": results.get("color_name"), "palette": results.get("palette"), "matches": matches})
         return render(request, "store/visual_search_results.html", {"results": results, "preview_data": camera_data if camera_data and camera_data.startswith("data:image") else None, "departments": Department.objects.all(), "selected_department": department_filter})
     return render(request, "store/visual_search.html", {"departments": Department.objects.all()})
+
+
+
+@require_POST
+def newsletter_subscribe(request):
+    email = request.POST.get("email", "").strip().lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        messages.error(request, "Enter a valid email address to join the mailing list.")
+        return redirect("store:home")
+
+    subscriber, _ = NewsletterSubscriber.objects.get_or_create(email=email)
+    if subscriber.is_active:
+        messages.info(request, "This email address is already subscribed.")
+        return redirect("store:home")
+
+    token = signing.dumps({"email": email}, salt="aura-luxe-newsletter-confirm")
+    confirm_url = request.build_absolute_uri(
+        reverse("store:newsletter_confirm", kwargs={"token": token})
+    )
+    try:
+        send_mail(
+            "Confirm your AURA LUXE mailing-list subscription",
+            f"Confirm your subscription within 24 hours using this link:\n\n{confirm_url}\n\nIf you did not request this, ignore this email.",
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+    except Exception:
+        messages.error(request, "We could not send the confirmation email. Please try again later.")
+        return redirect("store:home")
+
+    messages.success(request, "Check your inbox for a confirmation link. Your subscription is not active until you confirm.")
+    return redirect("store:home")
+
+
+@require_GET
+def newsletter_confirm(request, token):
+    try:
+        payload = signing.loads(token, salt="aura-luxe-newsletter-confirm", max_age=60 * 60 * 24)
+        email = payload.get("email", "").strip().lower()
+    except (signing.BadSignature, signing.SignatureExpired, AttributeError):
+        messages.error(request, "That mailing-list confirmation link is invalid or expired. Please subscribe again.")
+        return redirect("store:home")
+
+    subscriber = get_object_or_404(NewsletterSubscriber, email=email)
+    if not subscriber.is_active:
+        subscriber.is_active = True
+        subscriber.confirmed_at = timezone.now()
+        subscriber.save(update_fields=["is_active", "confirmed_at"])
+    messages.success(request, "Your AURA LUXE mailing-list subscription is confirmed.")
+    return redirect("store:home")

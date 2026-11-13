@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Order Confirmed #{{ order.order_number }} | AURA LUXE{% endblock %}
+{% block title %}{% if order.status == "pending_payment" %}Payment Pending{% elif order.status == "payment_review" %}Payment Review{% else %}Order Confirmed{% endif %} #{{ order.order_number }} | AURA LUXE{% endblock %}
 
 {% block content %}
 <div class="container" style="padding:48px 0 80px; max-width:920px;">
   <!-- Success Hero Card -->
   <div style="text-align:center; background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium); padding:40px; box-shadow:var(--shadow-md); margin-bottom:32px;">
-    <div style="width:72px; height:72px; border-radius:50%; background:#ecfdf5; color:#059669; font-size:2.2rem; display:inline-flex; align-items:center; justify-content:center; margin-bottom:18px;">
-      ✓
+    <div style="width:72px; height:72px; border-radius:50%; background:{% if order.status == "payment_review" %}#fffbeb{% else %}#ecfdf5{% endif %}; color:{% if order.status == "payment_review" %}#b45309{% else %}#059669{% endif %}; font-size:2.2rem; display:inline-flex; align-items:center; justify-content:center; margin-bottom:18px;">
+      {% if order.status == "payment_review" %}!{% else %}✓{% endif %}
     </div>
-    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">Thank You, {{ order.first_name }}</h1>
+    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">{% if order.status == "payment_review" %}Payment Review Required{% else %}Thank You, {{ order.first_name }}{% endif %}</h1>
     <p style="font-size:1.05rem; color:var(--text-muted); margin-bottom:16px;">
-      Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.
+      {% if order.status == "payment_review" %}Payment for order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> requires a support review. Please contact the store before placing another order.{% elif order.payment_method == "cod" or order.payment_status == "Paid" %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.{% else %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been created. Complete payment to confirm it.{% endif %}
     </p>
     <div style="display:inline-flex; gap:12px; font-size:0.85rem; background:#f8fafc; padding:8px 18px; border-radius:var(--radius-full); border:1px solid var(--border-medium);">
-      <span>Courier Tracking: <strong>{{ order.tracking_number }}</strong></span>
+      <span>{% if order.status == "pending_payment" %}Order Reference: <strong>{{ order.order_number }}</strong>{% elif order.status == "payment_review" %}Support Reference: <strong>{{ order.order_number }}</strong>{% elif order.tracking_number %}Courier Tracking: <strong>{% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ order.tracking_number }}</a>{% else %}{{ order.tracking_number }}{% endif %}</strong>{% else %}Tracking details will be added after dispatch{% endif %}</span>
       <span>•</span>
-      <span>Transit: <strong>{{ order.delivery_estimate_text }}</strong></span>
+      <span>Estimated delivery: <strong>{{ order.delivery_estimate_text }}</strong></span>
       {% if order.location_autodetected %}
         <span>•</span>
         <span style="color:#059669; font-weight:700;">📍 GPS Dispatch Verified</span>
@@ -27,14 +27,14 @@
 
   <!-- Courier Dispatch Timeline -->
   <div style="background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium); padding:32px; box-shadow:var(--shadow-sm); margin-bottom:32px;">
-    <h3 style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700; margin-bottom:24px;">Live Courier Dispatch Timeline</h3>
+    <h3 style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700; margin-bottom:24px;">Order Fulfilment Status</h3>
 
     <div class="tracking-timeline">
-      <div class="tracking-step completed">
-        <div class="step-node">✓</div>
-        <div class="step-label">Order Placed</div>
+      <div class="tracking-step {% if order.status != "pending_payment" %}completed{% else %}active{% endif %}">
+        <div class="step-node">{% if order.status != "pending_payment" %}✓{% else %}1{% endif %}</div>
+        <div class="step-label">{% if order.status == "pending_payment" %}Awaiting Payment{% else %}Order Placed{% endif %}</div>
       </div>
-      <div class="tracking-step active">
+      <div class="tracking-step {% if order.status == "placed" or order.status == "processing" %}active{% endif %}">
         <div class="step-node">✨</div>
         <div class="step-label">Packaging in Atelier</div>
       </div>
@@ -72,7 +72,7 @@
         <h4 style="font-weight:700; font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Payment & Delivery</h4>
         <div style="font-size:0.95rem; line-height:1.6;">
           Method: <strong>{{ order.get_payment_method_display }}</strong><br>
-          Status: <span style="color:#059669; font-weight:700;">{{ order.payment_status }}</span><br>
+          Status: <span style="font-weight:700;">{{ order.payment_status }}</span><br>
           Delivery Speed: <strong>{{ order.get_delivery_method_display }}</strong>
         </div>
       </div>
@@ -121,6 +121,84 @@
         <span>₹{{ order.total }}</span>
       </div>
     </div>
+
+
+{% if order.payment_method != "cod" and order.payment_status != "Paid" and order.razorpay_order_id and razorpay_key_id %}
+  <div style="margin:0 0 24px; padding:20px; border:1px solid var(--border-medium); border-radius:var(--radius-md); background:#fffaf5;">
+    <h3 style="font-weight:700; margin-bottom:6px;">Complete your payment</h3>
+    <p style="color:var(--text-muted); margin-bottom:14px;">Your order is reserved. Payment is still pending and the order will not be processed until Razorpay confirms it.</p>
+    <button id="auraPayNow" type="button" class="btn btn-primary">Pay ₹{{ order.total }} securely</button>
+    <p id="auraPaymentMessage" role="status" aria-live="polite" style="margin-top:10px; color:var(--text-muted);"></p>
+    <form id="auraPaymentVerify" method="post" action="{% url 'orders:payment_verify' order.order_number %}" hidden>
+      {% csrf_token %}
+      <input type="hidden" name="razorpay_payment_id">
+      <input type="hidden" name="razorpay_order_id">
+      <input type="hidden" name="razorpay_signature">
+    </form>
+  </div>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    (() => {
+      const button = document.getElementById("auraPayNow");
+      const message = document.getElementById("auraPaymentMessage");
+      const form = document.getElementById("auraPaymentVerify");
+      if (!button || !form || typeof Razorpay === "undefined") {
+        if (message) message.textContent = "Secure checkout could not load. Refresh this page or contact support.";
+        return;
+      }
+      button.addEventListener("click", () => {
+        button.disabled = true;
+        message.textContent = "Opening secure payment…";
+        const checkout = new Razorpay({
+          key: "{{ razorpay_key_id|escapejs }}",
+          amount: "{{ razorpay_amount }}",
+          currency: "INR",
+          name: "AURA LUXE",
+          description: "Order #{{ order.order_number|escapejs }}",
+          order_id: "{{ order.razorpay_order_id|escapejs }}",
+          prefill: {
+            name: "{{ order.full_name|escapejs }}",
+            email: "{{ order.email|escapejs }}",
+            contact: "{{ order.phone|escapejs }}"
+          },
+          theme: { color: "#9b5369" },
+          handler: async (response) => {
+            form.elements.razorpay_payment_id.value = response.razorpay_payment_id;
+            form.elements.razorpay_order_id.value = response.razorpay_order_id;
+            form.elements.razorpay_signature.value = response.razorpay_signature;
+            message.textContent = "Verifying payment with the server…";
+            try {
+              const result = await fetch(form.action, {
+                method: "POST",
+                body: new FormData(form),
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+              });
+              const data = await result.json();
+              if (!result.ok || data.status !== "success") throw new Error(data.message || "Payment verification failed.");
+              message.textContent = "Payment verified. Updating your order…";
+              window.location.reload();
+            } catch (error) {
+              message.textContent = error.message + " Your payment will also be reconciled by the secure webhook if captured.";
+              button.disabled = false;
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              message.textContent = "Payment was not completed. Your order remains pending.";
+              button.disabled = false;
+            }
+          }
+        });
+        checkout.on("payment.failed", (response) => {
+          message.textContent = response.error?.description || "Payment failed. You can try again.";
+          button.disabled = false;
+        });
+        checkout.open();
+      });
+    })();
+  </script>
+{% endif %}
 
     <div style="margin-top:36px; display:flex; justify-content:space-between; align-items:center;">
       <button type="button" class="btn btn-outline" onclick="window.print();">🖨️ Print Formal Invoice</button>

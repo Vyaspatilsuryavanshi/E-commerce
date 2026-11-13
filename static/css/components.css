@@ -659,3 +659,109 @@ input[type="radio"]:checked + .choice-radio-card {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Small-screen checkout, forms, drawers, and tracking */
+.cart-empty-state {
+  text-align: center;
+  padding: 48px 12px;
+  color: #64748b;
+}
+.cart-empty-icon {
+  font-size: 2.8rem;
+  margin-bottom: 12px;
+}
+.cart-empty-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+.cart-empty-description {
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+}
+.store-empty-state {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 600px) {
+  .checkout-grid {
+    gap: 18px;
+    padding-top: 22px;
+    padding-bottom: 48px;
+  }
+  .checkout-card {
+    padding: 18px 16px;
+  }
+  .form-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .gps-autofill-banner,
+  .location-hero-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .btn-autofill-gps,
+  .btn-gps-detect {
+    justify-content: center;
+    width: 100%;
+  }
+  .store-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+  .tracking-timeline {
+    gap: 10px;
+    margin: 24px 0;
+    padding: 0;
+  }
+  .tracking-timeline::before {
+    left: 18px;
+    right: 18px;
+    top: 16px;
+  }
+  .tracking-step {
+    flex: 1;
+    min-width: 0;
+  }
+  .step-node {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
+  }
+  .step-label {
+    font-size: 0.68rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .cart-page-grid,
+  .profile-page-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 22px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .cart-page-grid > div,
+  .profile-page-grid > div {
+    min-width: 0;
+    padding: 18px !important;
+  }
+  .cart-page-grid table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .profile-page-grid > div:first-child > div {
+    padding: 16px !important;
+  }
+}

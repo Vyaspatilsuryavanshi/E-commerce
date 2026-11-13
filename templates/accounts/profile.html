@@ -10,10 +10,10 @@
       <h1 style="font-family:var(--font-serif); font-size:2.2rem; font-weight:700;">Welcome, {{ user.first_name|default:user.username }}</h1>
       <p style="color:var(--text-muted); font-size:0.95rem;">Client Member since {{ user.date_joined|date:"F Y" }}</p>
     </div>
-    <a href="{% url 'accounts:logout' %}" class="btn btn-outline btn-sm">Sign Out</a>
+    <form action="{% url 'accounts:logout' %}" method="post" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-outline btn-sm">Sign Out</button></form>
   </div>
 
-  <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">
+  <div class="profile-page-grid" style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">
     <!-- Orders History -->
     <div>
       <h2 style="font-family:var(--font-serif); font-size:1.4rem; font-weight:700; margin-bottom:20px;">Your Orders & Dispatches</h2>
@@ -26,10 +26,11 @@
               <div style="font-size:0.8rem; color:var(--text-muted);">Placed on {{ ord.created_at|date:"M d, Y" }}</div>
             </div>
             <div style="text-align:right;">
-              <span style="display:inline-block; font-size:0.8rem; font-weight:700; color:#059669; background:#ecfdf5; padding:3px 10px; border-radius:var(--radius-full);">
+              <span style="display:inline-block; font-size:0.8rem; font-weight:700; {% if ord.status == "cancelled" or ord.status == "payment_review" %}color:#b45309; background:#fffbeb;{% elif ord.status == "pending_payment" %}color:#9a3412; background:#fff7ed;{% else %}color:#059669; background:#ecfdf5;{% endif %} padding:3px 10px; border-radius:var(--radius-full);">
                 {{ ord.get_status_display }}
               </span>
               <div style="font-weight:700; font-size:1.05rem; margin-top:4px;">₹{{ ord.total }}</div>
+              <div style="font-size:0.76rem; color:var(--text-muted); margin-top:3px;">Payment: {{ ord.payment_status }}</div>
             </div>
           </div>
 
@@ -44,7 +45,7 @@
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:12px; font-size:0.82rem;">
-            <span>Tracking: <strong>{{ ord.tracking_number }}</strong></span>
+            <span>{% if ord.status == "pending_payment" %}Payment due{% elif ord.status == "payment_review" %}Support review required{% elif ord.tracking_number %}Tracking{% else %}Dispatch{% endif %}: <strong>{% if ord.status == "pending_payment" %}Awaiting payment{% elif ord.status == "payment_review" %}Contact support{% elif ord.tracking_number %}{{ ord.tracking_number }}{% else %}Not yet assigned{% endif %}</strong></span>
             <a href="{% url 'orders:order_detail' ord.order_number %}" style="color:var(--rose-primary); font-weight:700;">View Receipt →</a>
           </div>
         </div>

@@ -240,3 +240,17 @@ class StoreLocation(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.city}, {self.country}"
+
+
+
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.email

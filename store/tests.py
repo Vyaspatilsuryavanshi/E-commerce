@@ -2,12 +2,15 @@ import io
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
+from django.core import mail
+import re
+from unittest.mock import patch
 from django.urls import reverse
 from PIL import Image
 
 from orders.models import Order, OrderItem
-from .models import Brand, Category, Department, Product, ProductReview, StoreLocation
+from .models import Brand, Category, Department, NewsletterSubscriber, Product, ProductReview, ProductVariant, StoreLocation
 from .visual_search import color_distance, hex_to_rgb, search_similar_products
 
 
@@ -80,3 +83,83 @@ class ReviewTests(TestCase):
         self.assertEqual(self.product.rating, Decimal("4.00"))
         self.assertEqual(ProductReview.objects.count(), 1)
         self.assertTrue(ProductReview.objects.get().verified_buyer)
+
+
+
+class VisualSearchSafetyTests(TestCase):
+    def setUp(self):
+        department = Department.objects.create(name="Safety Skincare", slug="safety-skincare")
+        category = Category.objects.create(department=department, name="Safety Serums", slug="safety-serums")
+        self.product = Product.objects.create(
+            department=department, category=category, name="Hydra Glow Serum", sku="SAFE-001",
+            short_description="Hydrating serum", description="Test product",
+            price=Decimal("1200.00"), stock=20,
+        )
+
+    def test_visual_search_rejects_malformed_base64(self):
+        result = search_similar_products("data:image/jpeg;base64,not-valid-base64!")
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])
+
+    def test_visual_search_rejects_non_image_bytes(self):
+        result = search_similar_products(io.BytesIO(b"not an image"))
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])
+
+    def test_visual_search_rejects_oversized_image_payload(self):
+        oversized = io.BytesIO(b"x" * (10 * 1024 * 1024 + 1))
+        result = search_similar_products(oversized)
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])
+
+
+    def test_in_stock_filter_respects_variant_inventory(self):
+        variant = ProductVariant.objects.create(
+            product=self.product, variant_type="size", name="M", stock=0,
+        )
+        response = self.client.get(reverse("store:catalog") + "?in_stock=1")
+        self.assertNotContains(response, "Hydra Glow Serum")
+
+        variant.stock = 2
+        variant.save(update_fields=["stock"])
+        response = self.client.get(reverse("store:catalog") + "?in_stock=1")
+        self.assertContains(response, "Hydra Glow Serum")
+
+    def test_catalog_ignores_non_finite_price_and_rating_filters(self):
+        response = self.client.get(reverse("store:catalog") + "?min_price=NaN&max_price=Infinity&rating=NaN")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hydra Glow Serum")
+
+
+
+class NewsletterSubscriptionTests(TestCase):
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_newsletter_subscription_requires_email_confirmation(self):
+        response = self.client.post(reverse("store:newsletter_subscribe"), {
+            "email": "Reader@Example.com",
+        })
+        self.assertRedirects(response, reverse("store:home"))
+        subscriber = NewsletterSubscriber.objects.get(email="reader@example.com")
+        self.assertFalse(subscriber.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+        match = re.search(r"http://testserver(/newsletter/confirm/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+
+        response = self.client.get(match.group(1))
+        self.assertRedirects(response, reverse("store:home"))
+        subscriber.refresh_from_db()
+        self.assertTrue(subscriber.is_active)
+        self.assertIsNotNone(subscriber.confirmed_at)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_newsletter_invalid_email_is_rejected(self):
+        response = self.client.post(reverse("store:newsletter_subscribe"), {"email": "not-an-email"})
+        self.assertRedirects(response, reverse("store:home"))
+        self.assertEqual(NewsletterSubscriber.objects.count(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch("store.views.signing.loads", side_effect=__import__("django.core.signing", fromlist=["SignatureExpired"]).SignatureExpired("expired"))
+    def test_newsletter_confirmation_token_expires(self, load_token):
+        response = self.client.get(reverse("store:newsletter_confirm", args=["expired-token"]))
+        self.assertRedirects(response, reverse("store:home"))
+        self.assertEqual(NewsletterSubscriber.objects.count(), 0)

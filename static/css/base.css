@@ -619,3 +619,142 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* Accessible footer sign-out action */
+.footer-link-button { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.footer-link-button:hover { text-decoration: underline; }
+
+
+/* Responsive header, navigation, and accessible interaction states */
+:focus-visible {
+  outline: 3px solid rgba(225, 29, 72, 0.55);
+  outline-offset: 3px;
+}
+
+@media (max-width: 992px) {
+  .header-container {
+    height: auto;
+    min-height: 84px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    row-gap: 12px;
+  }
+  .search-form-wrap {
+    margin-bottom: 0;
+  }
+  .dept-nav-list {
+    height: 48px;
+    scrollbar-width: thin;
+  }
+  .footer-grid {
+    gap: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .top-bar {
+    padding: 7px 0;
+  }
+  .top-bar-inner {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 12px;
+    text-align: center;
+  }
+  .top-announcement,
+  .db-pill {
+    display: none;
+  }
+  .location-detector-badge {
+    font-size: 0.72rem;
+  }
+  .header-container {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+  }
+  .brand-title {
+    font-size: 1.45rem;
+  }
+  .brand-tagline {
+    font-size: 0.55rem;
+    letter-spacing: 0.16em;
+  }
+  .header-actions {
+    gap: 4px;
+  }
+  .action-item {
+    padding: 7px;
+    gap: 0;
+    font-size: 0.75rem;
+  }
+  .action-item > span:not(.action-icon):not(.badge-count) {
+    display: none;
+  }
+  .action-icon {
+    font-size: 1.2rem;
+  }
+  .search-form {
+    padding-left: 12px;
+  }
+  .search-input {
+    min-width: 0;
+    font-size: 0.78rem;
+  }
+  .btn-visual-search {
+    padding: 6px 8px;
+    font-size: 0.68rem;
+  }
+  .dept-nav-list {
+    gap: 18px;
+  }
+  .dept-nav-link {
+    font-size: 0.8rem;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 18px;
+  }
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .toast {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Visually hidden labels remain available to assistive technology. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

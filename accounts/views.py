@@ -73,6 +73,7 @@ def user_login(request):
     return render(request, "accounts/login.html", {"next": next_url or ""})
 
 
+@require_POST
 def user_logout(request):
     logout(request)
     messages.info(request, "You have been signed out.")

@@ -18,11 +18,11 @@ class OrderReturnInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
         'order_number', 'full_name', 'email', 'city', 'state',
-        'delivery_method', 'total', 'payment_status', 'status', 'location_autodetected', 'created_at'
+        'delivery_method', 'courier_partner', 'tracking_number', 'total', 'payment_status', 'status', 'location_autodetected', 'created_at'
     )
     list_filter = ('status', 'payment_status', 'payment_method', 'delivery_method', 'location_autodetected', 'created_at')
     search_fields = ('order_number', 'first_name', 'last_name', 'email', 'tracking_number', 'city')
-    readonly_fields = ('order_number', 'tracking_number', 'razorpay_order_id', 'razorpay_payment_id', 'created_at', 'updated_at')
+    readonly_fields = ('order_number', 'razorpay_order_id', 'razorpay_payment_id', 'created_at', 'updated_at')
     inlines = [OrderItemInline, OrderReturnInline]
 
 

@@ -10,6 +10,7 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 - Session-backed shopping cart with quantity validation, stock validation, live price refresh, coupon codes, shipping calculation, and AJAX mini-cart support.
 - Guest and authenticated checkout with shipping-address validation, browser GPS auto-fill, delivery methods, Razorpay payment order creation, server-side payment verification, signed webhook handling, and transactional stock reservation.
 - Customer accounts, secure login/logout/register flows, email-based password reset, saved profile/address information, and wishlist management.
+- Double-opt-in mailing-list subscriptions with expiring email confirmation links and admin management.
 - Order confirmation and order-detail pages protected against unauthorized order-number access.
 - Authenticated order cancellation with stock restoration and refund-state handling.
 - Delivered-order return requests with validation and return workflow statuses.
@@ -21,9 +22,9 @@ The application is configured around **Indian Rupees (₹)** and Indian checkout
 
 ## Production static files and account email
 
-WhiteNoise serves collected static assets in production. The production static storage uses compressed, manifest-versioned assets; run `python manage.py collectstatic --noinput` during deployment. Product and department media uploads still need persistent object storage or a mounted persistent volume on the production host.
+WhiteNoise serves collected static assets in production. The production static storage uses compressed, manifest-versioned assets; run `python manage.py collectstatic --noinput` during deployment. Product and department media uploads still need persistent object storage or a mounted persistent volume on the production host. Courier tracking is entered by store staff in Django admin after dispatch; no carrier API or live courier tracking integration is claimed.
 
-Password reset uses Django’s signed, time-limited reset tokens. In development, reset emails are printed to the runserver console. For production, configure SMTP using `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL` in the host’s secret environment settings. Never commit SMTP credentials.
+Password reset uses Django’s signed, time-limited reset tokens. The footer mailing-list form also uses double opt-in: addresses are stored as inactive until the recipient confirms the email link, which expires after 24 hours. In development, reset emails are printed to the runserver console. For production, configure SMTP using `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL` in the host’s secret environment settings. Never commit SMTP credentials.
 
 ## Payment integration (Razorpay)
 

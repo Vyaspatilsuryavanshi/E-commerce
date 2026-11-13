@@ -39,7 +39,7 @@ https://your-domain.example/orders/payment/razorpay/webhook/
 
 Subscribe to the `payment.captured` event and use the exact webhook secret configured in `RAZORPAY_WEBHOOK_SECRET`. Never commit real credentials or use live keys before completing test-mode checkout, webhook and refund operations. Cash on Delivery remains available when selected.
 
-**Operational requirement:** online orders reserve stock while payment is pending. The store operator must monitor and cancel abandoned pending-payment orders until an automated reservation-expiry policy is configured. Refunds for already-paid orders are not automated; paid orders cannot be cancelled through the customer self-service action.
+**Pending-payment expiry:** the `expire_pending_orders` management command checks aged Razorpay orders against the provider before releasing reserved inventory. It expires unpaid orders after 30 minutes by default, leaves authorized/in-flight payments untouched, reconciles captured payments, and flags amount mismatches for review. If Razorpay is unavailable, the order and stock reservation are left untouched. Set `PENDING_PAYMENT_EXPIRY_MINUTES` to change the grace period. Run this command from a scheduled worker/cron every 5–10 minutes; the command is safe to rerun. Refunds for already-paid orders are not automated; paid orders cannot be cancelled through the customer self-service action.
 
 ## Setup on Windows PowerShell
 
@@ -121,6 +121,22 @@ python manage.py collectstatic --noinput
 ```powershell
 python manage.py check_db
 ```
+
+### 7. Expire abandoned unpaid orders
+
+Run this command manually to process online orders that have been unpaid for at least 30 minutes:
+
+```powershell
+python manage.py expire_pending_orders
+```
+
+Preview eligible orders without changing inventory:
+
+```powershell
+python manage.py expire_pending_orders --dry-run
+```
+
+For production, schedule `python manage.py expire_pending_orders` every 5–10 minutes using a persistent worker or the host scheduler. Keep the provider credentials configured; if the provider cannot be reached, the command deliberately leaves the order and reserved stock unchanged.
 
 ## Project structure
 

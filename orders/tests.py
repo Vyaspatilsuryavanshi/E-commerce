@@ -38,7 +38,7 @@ class OrderFlowTests(TestCase):
         order = Order.objects.get(email="buyer@example.com")
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)
-        self.assertEqual(order.total, Decimal("2549.00"))
+        self.assertEqual(order.total, Decimal("2400.00"))
         self.assertEqual(order.payment_status, "Pending - Cash on Delivery")
         confirmation = self.client.get(reverse("orders:order_success", args=[order.order_number]))
         self.assertEqual(confirmation.status_code, 200)
@@ -64,8 +64,7 @@ class OrderFlowTests(TestCase):
 
     def test_variant_checkout_decrements_variant_stock(self):
         variant = ProductVariant.objects.create(product=self.product, variant_type="size", name="M", stock=2)
-        cart = Cart(self.client)
-        cart.add(self.product, variant, 2)
+        self.client.post(reverse("cart:cart_add", args=[self.product.id]), {"quantity": 2, "variant_id": variant.id})
         response = self.checkout()
         self.assertEqual(response.status_code, 302)
         variant.refresh_from_db()

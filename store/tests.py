@@ -7,7 +7,7 @@ from django.urls import reverse
 from PIL import Image
 
 from orders.models import Order, OrderItem
-from .models import Brand, Category, Department, Product, ProductReview, StoreLocation
+from .models import Brand, Category, Department, Product, ProductReview, ProductVariant, StoreLocation
 from .visual_search import color_distance, hex_to_rgb, search_similar_products
 
 

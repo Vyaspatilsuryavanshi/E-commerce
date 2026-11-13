@@ -8,6 +8,7 @@ from store.models import Product, ProductVariant
 
 class Order(models.Model):
     STATUS_CHOICES = (
+        ('pending_payment', 'Awaiting Payment'),
         ('placed', 'Order Placed'),
         ('processing', 'Preparing in Atelier'),
         ('shipped', 'Shipped with Courier'),
@@ -109,7 +110,7 @@ class Order(models.Model):
 
     @property
     def can_cancel(self):
-        return self.status in ('placed', 'processing')
+        return self.status in ('pending_payment', 'placed', 'processing')
 
     @property
     def can_return(self):

@@ -202,3 +202,89 @@ class OrderFlowTests(TestCase):
         self.assertEqual(order.payment_status, "Paid")
         self.assertEqual(order.status, "placed")
         self.assertEqual(order.razorpay_payment_id, payment_id)
+
+
+
+class PendingOrderExpiryTests(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        department = Department.objects.create(name="Expiry Clothing", slug="expiry-clothing")
+        category = Category.objects.create(department=department, name="Expiry Dresses", slug="expiry-dresses")
+        self.product = Product.objects.create(
+            department=department, category=category, name="Reserved Dress", sku="EXP-001",
+            short_description="Test", description="Test", price=Decimal("1200.00"), stock=3,
+        )
+        self.order = Order.objects.create(
+            first_name="Test", last_name="Buyer", email="expiry@example.com", phone="9999999999",
+            address_line_1="1 Main Street", city="Pune", state="Maharashtra", postal_code="411001",
+            country="India", payment_method="card", payment_status="Pending - Razorpay",
+            razorpay_order_id="order_expiry_123", subtotal=Decimal("2400.00"),
+            total=Decimal("2400.00"), status="pending_payment",
+        )
+        OrderItem.objects.create(
+            order=self.order, product=self.product, product_name=self.product.name,
+            price=Decimal("1200.00"), quantity=2,
+        )
+        Order.objects.filter(pk=self.order.pk).update(created_at=timezone.now() - timedelta(hours=2))
+        self.product.stock = 1
+        self.product.save(update_fields=["stock"])
+
+    @patch("orders.management.commands.expire_pending_orders.fetch_razorpay_order_payments", return_value=[])
+    def test_expiry_releases_reserved_stock_once(self, fetch_payments):
+        from django.core.management import call_command
+
+        call_command("expire_pending_orders", minutes=30, stdout=__import__("io").StringIO())
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, "cancelled")
+        self.assertEqual(self.order.payment_status, "Expired - Unpaid")
+        self.assertEqual(self.product.stock, 3)
+
+        call_command("expire_pending_orders", minutes=30, stdout=__import__("io").StringIO())
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+
+    @patch(
+        "orders.management.commands.expire_pending_orders.fetch_razorpay_order_payments",
+        return_value=[{"id": "pay_auth", "status": "authorized"}],
+    )
+    def test_expiry_does_not_release_stock_for_in_flight_payment(self, fetch_payments):
+        from django.core.management import call_command
+
+        call_command("expire_pending_orders", minutes=30, stdout=__import__("io").StringIO())
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, "pending_payment")
+        self.assertEqual(self.product.stock, 1)
+
+    @patch(
+        "orders.management.commands.expire_pending_orders.fetch_razorpay_order_payments",
+        return_value=[{
+            "id": "pay_captured", "status": "captured", "amount": 240000, "currency": "INR",
+        }],
+    )
+    def test_expiry_reconciles_captured_payment_instead_of_releasing_stock(self, fetch_payments):
+        from django.core.management import call_command
+
+        call_command("expire_pending_orders", minutes=30, stdout=__import__("io").StringIO())
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, "placed")
+        self.assertEqual(self.order.payment_status, "Paid")
+        self.assertEqual(self.order.razorpay_payment_id, "pay_captured")
+        self.assertEqual(self.product.stock, 1)
+
+    @patch(
+        "orders.management.commands.expire_pending_orders.fetch_razorpay_order_payments",
+        side_effect=__import__("orders.payments", fromlist=["RazorpayError"]).RazorpayError("provider down"),
+    )
+    def test_expiry_fails_safe_when_provider_is_unavailable(self, fetch_payments):
+        from django.core.management import call_command
+
+        call_command("expire_pending_orders", minutes=30, stdout=__import__("io").StringIO())
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, "pending_payment")
+        self.assertEqual(self.product.stock, 1)

@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="order",
             name="status",
-            field=__import__("django.db.models", fromlist=["models"]).CharField(
+            field=models.CharField(
                 choices=[
                     ("pending_payment", "Awaiting Payment"),
                     ("placed", "Order Placed"),

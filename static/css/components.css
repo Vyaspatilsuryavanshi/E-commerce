@@ -740,3 +740,28 @@ input[type="radio"]:checked + .choice-radio-card {
     overflow-wrap: anywhere;
   }
 }
+
+
+@media (max-width: 768px) {
+  .cart-page-grid,
+  .profile-page-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 22px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .cart-page-grid > div,
+  .profile-page-grid > div {
+    min-width: 0;
+    padding: 18px !important;
+  }
+  .cart-page-grid table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .profile-page-grid > div:first-child > div {
+    padding: 16px !important;
+  }
+}

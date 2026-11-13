@@ -9,6 +9,7 @@ from store.models import Product, ProductVariant
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending_payment', 'Awaiting Payment'),
+        ('payment_review', 'Payment Review Required'),
         ('placed', 'Order Placed'),
         ('processing', 'Preparing in Atelier'),
         ('shipped', 'Shipped with Courier'),

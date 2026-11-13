@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from orders.models import Order
 from orders.inventory import restore_order_inventory
-from orders.payments import RazorpayError, fetch_razorpay_order_payments
+from orders.payments import RazorpayError, amount_in_paise, fetch_razorpay_order_payments
 
 
 class Command(BaseCommand):
@@ -56,13 +56,24 @@ class Command(BaseCommand):
 
             if captured:
                 payment_id = captured.get("id")
+                if options["dry_run"]:
+                    valid_payment = (
+                        int(captured.get("amount", -1)) == amount_in_paise(candidate.total)
+                        and captured.get("currency") == "INR"
+                        and bool(payment_id)
+                    )
+                    action = "reconcile captured payment" if valid_payment else "flag captured payment for manual review"
+                    self.stdout.write(f"Would {action} for {candidate.order_number}.")
+                    paid += int(valid_payment)
+                    review += int(not valid_payment)
+                    continue
                 try:
                     with transaction.atomic():
                         order = Order.objects.select_for_update().get(pk=candidate.pk)
                         if order.status != "pending_payment" or order.payment_status != "Pending - Razorpay":
                             skipped += 1
                             continue
-                        if int(captured.get("amount", -1)) != int(order.total * 100) or captured.get("currency") != "INR" or not payment_id:
+                        if int(captured.get("amount", -1)) != amount_in_paise(order.total) or captured.get("currency") != "INR" or not payment_id:
                             order.status = "payment_review"
                             order.payment_status = "Payment Captured - Review Required"
                             order.save(update_fields=["status", "payment_status", "updated_at"])

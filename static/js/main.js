@@ -23,10 +23,15 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <span>${message}</span>
-    <button type="button" style="font-size:1.1rem; opacity:0.6;" onclick="this.parentElement.remove()">✕</button>
-  `;
+  const messageText = document.createElement('span');
+  messageText.textContent = String(message ?? '');
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.textContent = '✕';
+  closeButton.setAttribute('aria-label', 'Dismiss notification');
+  closeButton.style.cssText = 'font-size:1.1rem; opacity:0.6;';
+  closeButton.addEventListener('click', () => toast.remove());
+  toast.append(messageText, closeButton);
 
   container.appendChild(toast);
 

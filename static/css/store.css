@@ -638,3 +638,93 @@ input[type="radio"]:checked + .swatch-pill {
     height: 320px;
   }
 }
+
+
+/* Responsive catalog and product detail refinements */
+@media (max-width: 768px) {
+  .catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding-top: 20px;
+  }
+  .filters-sidebar {
+    position: static;
+    padding: 18px;
+  }
+  .pdp-grid {
+    gap: 28px;
+    padding-top: 24px;
+  }
+  .pdp-main-img {
+    height: min(78vw, 480px);
+  }
+  .pdp-title {
+    font-size: clamp(1.7rem, 7vw, 2.25rem);
+  }
+  .visual-search-banner {
+    padding: 28px 20px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+  .hero-subtitle {
+    font-size: 0.92rem;
+  }
+  .hero-cta-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-cta-group .btn {
+    width: 100%;
+  }
+  .hero-visual-img {
+    height: 260px;
+  }
+  .section-pad {
+    padding-top: 42px;
+    padding-bottom: 42px;
+  }
+  .section-title {
+    font-size: 1.7rem;
+  }
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .product-card {
+    min-width: 0;
+  }
+  .product-info {
+    padding: 12px;
+  }
+  .product-name {
+    font-size: 0.9rem;
+  }
+  .product-price-row {
+    flex-wrap: wrap;
+    gap: 5px 8px;
+  }
+  .product-actions {
+    flex-wrap: wrap;
+  }
+  .pdp-thumbs {
+    overflow-x: auto;
+  }
+  .delivery-calculator-box {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .visual-search-banner {
+    padding: 22px 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

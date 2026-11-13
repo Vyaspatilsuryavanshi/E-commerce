@@ -23,7 +23,7 @@ class Cart:
     """Session-backed shopping cart with live catalog validation."""
 
     def __init__(self, request):
-        self.session = request.session
+        self.session = request.session if hasattr(request, "session") else request
         self.cart = self.session.get(settings.CART_SESSION_ID) or {}
         self.session[settings.CART_SESSION_ID] = self.cart
         self.coupon_code = self.session.get("coupon_code")

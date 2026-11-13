@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
+from django.core import mail
+import re
 from django.urls import reverse
 
 from .models import CustomerProfile, Wishlist
@@ -41,3 +43,33 @@ class AccountsTests(TestCase):
         response = self.client.post(reverse("accounts:wishlist_toggle", args=[self.product.id]), HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Wishlist.objects.filter(user=self.user, product=self.product).exists())
+
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_password_reset_sends_single_use_reset_link(self):
+        response = self.client.post(reverse("accounts:password_reset"), {
+            "email": "customer@example.com",
+        })
+        self.assertRedirects(response, reverse("accounts:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("AURA LUXE", mail.outbox[0].subject)
+        match = re.search(r"http://testserver(/account/password-reset/confirm/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+
+        confirm_url = match.group(1)
+        confirm = self.client.get(confirm_url)
+        self.assertEqual(confirm.status_code, 200)
+        changed = self.client.post(confirm_url, {
+            "new_password1": "NewStrongPass123!",
+            "new_password2": "NewStrongPass123!",
+        })
+        self.assertRedirects(changed, reverse("accounts:password_reset_complete"))
+        self.assertTrue(self.client.login(username="customer", password="NewStrongPass123!"))
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_password_reset_does_not_disclose_unknown_email(self):
+        response = self.client.post(reverse("accounts:password_reset"), {
+            "email": "unknown@example.com",
+        })
+        self.assertRedirects(response, reverse("accounts:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)

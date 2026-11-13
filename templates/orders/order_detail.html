@@ -23,7 +23,7 @@
         <span style="font-size:0.85rem; font-weight:700; {% if order.status == "cancelled" or order.status == "payment_review" %}background:#fffbeb; color:#b45309;{% elif order.status == "pending_payment" %}background:#fff7ed; color:#9a3412;{% else %}background:#ecfdf5; color:#059669;{% endif %} padding:4px 12px; border-radius:var(--radius-full);">
           {{ order.get_status_display }}
         </span>
-        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">{% if order.status == "pending_payment" %}Payment awaiting{% elif order.status == "payment_review" %}Payment review required{% else %}Courier: {{ order.tracking_number }}{% endif %}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">{% if order.status == "pending_payment" %}Payment awaiting{% elif order.status == "payment_review" %}Payment review required{% elif order.tracking_number %}Courier: {% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ order.tracking_number }}</a>{% else %}{{ order.tracking_number }}{% endif %}{% else %}Tracking details pending dispatch{% endif %}</div>
       </div>
     </div>
 

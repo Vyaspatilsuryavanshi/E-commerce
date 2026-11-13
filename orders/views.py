@@ -349,7 +349,7 @@ def cancel_order(request, order_number):
                         product.stock += item.quantity
                         product.save(update_fields=["stock"])
         order.status = "cancelled"
-        order.payment_status = "Refund Pending - Demo" if order.payment_method != "cod" else "Cancelled - COD"
+        order.payment_status = "Cancelled - Unpaid" if order.payment_method != "cod" else "Cancelled - COD"
         order.save(update_fields=["status", "payment_status", "updated_at"])
     messages.success(request, f"Order #{order.order_number} has been cancelled.")
     return redirect("orders:order_detail", order_number=order_number)

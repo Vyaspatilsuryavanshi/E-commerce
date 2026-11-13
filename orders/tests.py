@@ -166,3 +166,40 @@ class OrderFlowTests(TestCase):
             HTTP_X_RAZORPAY_SIGNATURE="invalid",
         )
         self.assertEqual(response.status_code, 400)
+
+
+    @override_settings(RAZORPAY_KEY_ID="rzp_test_key", RAZORPAY_KEY_SECRET="test_secret")
+    @patch("orders.views.fetch_razorpay_payment")
+    @patch("orders.views.create_razorpay_order")
+    def test_valid_captured_payment_marks_order_paid(self, create_gateway_order, fetch_payment):
+        import hashlib
+        import hmac
+
+        create_gateway_order.return_value = {"id": "order_test_123", "amount": 134900, "currency": "INR"}
+        self.add_item()
+        self.checkout(payment_method="card")
+        order = Order.objects.get(email="buyer@example.com")
+        payment_id = "pay_test_123"
+        signature = hmac.new(
+            b"test_secret",
+            b"order_test_123|pay_test_123",
+            hashlib.sha256,
+        ).hexdigest()
+        fetch_payment.return_value = {
+            "id": payment_id,
+            "order_id": "order_test_123",
+            "amount": 134900,
+            "currency": "INR",
+            "status": "captured",
+        }
+
+        response = self.client.post(reverse("orders:payment_verify", args=[order.order_number]), {
+            "razorpay_order_id": "order_test_123",
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature,
+        })
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "Paid")
+        self.assertEqual(order.status, "placed")
+        self.assertEqual(order.razorpay_payment_id, payment_id)

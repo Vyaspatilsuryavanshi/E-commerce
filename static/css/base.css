@@ -619,3 +619,8 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* Accessible footer sign-out action */
+.footer-link-button { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.footer-link-button:hover { text-decoration: underline; }

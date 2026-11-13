@@ -2,12 +2,14 @@ import io
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
+from django.core import mail
+import re
 from django.urls import reverse
 from PIL import Image
 
 from orders.models import Order, OrderItem
-from .models import Brand, Category, Department, Product, ProductReview, ProductVariant, StoreLocation
+from .models import Brand, Category, Department, NewsletterSubscriber, Product, ProductReview, ProductVariant, StoreLocation
 from .visual_search import color_distance, hex_to_rgb, search_similar_products
 
 
@@ -126,3 +128,43 @@ class VisualSearchSafetyTests(TestCase):
         response = self.client.get(reverse("store:catalog") + "?min_price=NaN&max_price=Infinity&rating=NaN")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Hydra Glow Serum")
+
+
+
+class NewsletterSubscriptionTests(TestCase):
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_newsletter_subscription_requires_email_confirmation(self):
+        response = self.client.post(reverse("store:newsletter_subscribe"), {
+            "email": "Reader@Example.com",
+        })
+        self.assertRedirects(response, reverse("store:home"))
+        subscriber = NewsletterSubscriber.objects.get(email="reader@example.com")
+        self.assertFalse(subscriber.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+        match = re.search(r"http://testserver(/newsletter/confirm/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+
+        response = self.client.get(match.group(1))
+        self.assertRedirects(response, reverse("store:home"))
+        subscriber.refresh_from_db()
+        self.assertTrue(subscriber.is_active)
+        self.assertIsNotNone(subscriber.confirmed_at)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_newsletter_invalid_email_is_rejected(self):
+        response = self.client.post(reverse("store:newsletter_subscribe"), {"email": "not-an-email"})
+        self.assertRedirects(response, reverse("store:home"))
+        self.assertEqual(NewsletterSubscriber.objects.count(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_newsletter_confirmation_token_expires(self):
+        from django.core import signing
+
+        token = signing.dumps(
+            {"email": "reader@example.com"},
+            salt="aura-luxe-newsletter-confirm",
+        )
+        response = self.client.get(reverse("store:newsletter_confirm", args=[token]))
+        self.assertRedirects(response, reverse("store:home"))
+        self.assertEqual(NewsletterSubscriber.objects.count(), 0)

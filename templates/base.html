@@ -391,7 +391,7 @@
           <ul class="footer-links">
             {% if user.is_authenticated %}
               <li><a href="{% url 'accounts:profile' %}">Client Dashboard</a></li>
-              <li><a href="{% url 'accounts:logout' %}">Sign Out</a></li>
+              <li><form action="{% url 'accounts:logout' %}" method="post">{% csrf_token %}<button type="submit" class="footer-link-button">Sign Out</button></form></li>
             {% else %}
               <li><a href="{% url 'accounts:login' %}">Sign In / Register</a></li>
             {% endif %}

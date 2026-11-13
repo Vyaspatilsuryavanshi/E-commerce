@@ -134,6 +134,7 @@ class OrderFlowTests(TestCase):
         order = Order.objects.get(email="buyer@example.com")
         self.assertEqual(order.payment_status, "Pending - Razorpay")
         self.assertEqual(order.razorpay_order_id, "order_test_123")
+        self.assertEqual(order.status, "pending_payment")
         self.assertEqual(create_gateway_order.call_count, 1)
 
         invalid = self.client.post(reverse("orders:payment_verify", args=[order.order_number]), {

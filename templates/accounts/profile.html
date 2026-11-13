@@ -10,7 +10,7 @@
       <h1 style="font-family:var(--font-serif); font-size:2.2rem; font-weight:700;">Welcome, {{ user.first_name|default:user.username }}</h1>
       <p style="color:var(--text-muted); font-size:0.95rem;">Client Member since {{ user.date_joined|date:"F Y" }}</p>
     </div>
-    <a href="{% url 'accounts:logout' %}" class="btn btn-outline btn-sm">Sign Out</a>
+    <form action="{% url 'accounts:logout' %}" method="post" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-outline btn-sm">Sign Out</button></form>
   </div>
 
   <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">

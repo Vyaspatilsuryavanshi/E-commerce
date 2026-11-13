@@ -81,3 +81,23 @@ def fetch_razorpay_payment(payment_id):
     if not isinstance(payload, dict):
         raise RazorpayError("The payment provider returned an invalid payment response.")
     return payload
+
+
+
+def fetch_razorpay_order_payments(order_id):
+    """Return the provider's payment attempts for a Razorpay order."""
+    if not is_razorpay_configured():
+        raise RazorpayError("Online payments are not configured.")
+    try:
+        response = requests.get(
+            f"{RAZORPAY_API_URL}/orders/{order_id}/payments",
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+            timeout=(4, 15),
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise RazorpayError("Payment attempts could not be checked with the provider.") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
+        raise RazorpayError("The payment provider returned an invalid order-payment response.")
+    return payload["items"]

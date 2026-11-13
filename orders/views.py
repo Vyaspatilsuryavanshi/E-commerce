@@ -251,11 +251,18 @@ def payment_verify(request, order_number):
 
     if (
         payment.get("order_id") != order.razorpay_order_id
-        or int(payment.get("amount", -1)) != amount_in_paise(order.total)
         or payment.get("currency") != "INR"
         or payment.get("status") != "captured"
     ):
         return JsonResponse({"status": "error", "message": "The provider has not confirmed the expected captured payment."}, status=400)
+    if int(payment.get("amount", -1)) != amount_in_paise(order.total):
+        with transaction.atomic():
+            locked_order = Order.objects.select_for_update().get(pk=order.pk)
+            locked_order.status = "payment_review"
+            locked_order.payment_status = "Captured Amount Mismatch - Review Required"
+            locked_order.razorpay_payment_id = payment_id
+            locked_order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
+        return JsonResponse({"status": "review", "message": "Payment was captured for an unexpected amount. Support must review it."}, status=409)
 
     try:
         with transaction.atomic():
@@ -263,7 +270,8 @@ def payment_verify(request, order_number):
             if locked_order.status == "cancelled":
                 locked_order.status = "payment_review"
                 locked_order.payment_status = "Payment Captured - Review Required"
-                locked_order.save(update_fields=["status", "payment_status", "updated_at"])
+                locked_order.razorpay_payment_id = payment_id
+                locked_order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
                 return JsonResponse({"status": "review", "message": "Payment was captured after order cancellation. Support must review this payment."}, status=409)
             if locked_order.payment_status != "Paid":
                 locked_order.razorpay_payment_id = payment_id
@@ -296,11 +304,16 @@ def razorpay_webhook(request):
         with transaction.atomic():
             order = Order.objects.select_for_update().get(razorpay_order_id=gateway_order_id)
             if int(entity.get("amount", -1)) != amount_in_paise(order.total) or entity.get("currency") != "INR":
-                return JsonResponse({"status": "error", "message": "Payment amount mismatch."}, status=400)
+                order.status = "payment_review"
+                order.payment_status = "Captured Amount Mismatch - Review Required"
+                order.razorpay_payment_id = payment_id
+                order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
+                return JsonResponse({"status": "ok", "review_required": True})
             if order.status == "cancelled":
                 order.status = "payment_review"
                 order.payment_status = "Payment Captured - Review Required"
-                order.save(update_fields=["status", "payment_status", "updated_at"])
+                order.razorpay_payment_id = payment_id
+                order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
                 return JsonResponse({"status": "ok", "review_required": True})
             if order.payment_status != "Paid":
                 order.razorpay_payment_id = payment_id

@@ -80,3 +80,22 @@ class ReviewTests(TestCase):
         self.assertEqual(self.product.rating, Decimal("4.00"))
         self.assertEqual(ProductReview.objects.count(), 1)
         self.assertTrue(ProductReview.objects.get().verified_buyer)
+
+
+
+class VisualSearchSafetyTests(TestCase):
+    def test_visual_search_rejects_malformed_base64(self):
+        result = search_similar_products("data:image/jpeg;base64,not-valid-base64!")
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])
+
+    def test_visual_search_rejects_non_image_bytes(self):
+        result = search_similar_products(io.BytesIO(b"not an image"))
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])
+
+    def test_visual_search_rejects_oversized_image_payload(self):
+        oversized = io.BytesIO(b"x" * (10 * 1024 * 1024 + 1))
+        result = search_similar_products(oversized)
+        self.assertIn("error", result)
+        self.assertEqual(result["matches"], [])

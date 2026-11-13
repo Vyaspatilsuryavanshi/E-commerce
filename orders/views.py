@@ -267,6 +267,12 @@ def payment_verify(request, order_number):
     try:
         with transaction.atomic():
             locked_order = Order.objects.select_for_update().get(pk=order.pk)
+            if locked_order.status in {"cancelled", "payment_review"}:
+                locked_order.status = "payment_review"
+                locked_order.payment_status = "Payment Captured - Review Required"
+                locked_order.razorpay_payment_id = payment_id
+                locked_order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
+                return JsonResponse({"status": "review", "message": "Payment requires support review before fulfilment."}, status=409)
             if locked_order.status == "cancelled":
                 locked_order.status = "payment_review"
                 locked_order.payment_status = "Payment Captured - Review Required"
@@ -309,7 +315,7 @@ def razorpay_webhook(request):
                 order.razorpay_payment_id = payment_id
                 order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
                 return JsonResponse({"status": "ok", "review_required": True})
-            if order.status == "cancelled":
+            if order.status in {"cancelled", "payment_review"}:
                 order.status = "payment_review"
                 order.payment_status = "Payment Captured - Review Required"
                 order.razorpay_payment_id = payment_id

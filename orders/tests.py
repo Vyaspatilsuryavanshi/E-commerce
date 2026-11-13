@@ -288,3 +288,64 @@ class PendingOrderExpiryTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.order.status, "pending_payment")
         self.assertEqual(self.product.stock, 1)
+
+
+    @patch("orders.management.commands.expire_pending_orders.fetch_razorpay_order_payments", return_value=[])
+    def test_expiry_dry_run_does_not_change_order_or_inventory(self, fetch_payments):
+        from django.core.management import call_command
+
+        call_command(
+            "expire_pending_orders", minutes=30, dry_run=True,
+            stdout=__import__("io").StringIO(),
+        )
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, "pending_payment")
+        self.assertEqual(self.product.stock, 1)
+
+    @override_settings(RAZORPAY_WEBHOOK_SECRET="webhook_secret")
+    def test_late_captured_webhook_keeps_cancelled_order_in_review(self):
+        import hashlib
+        import hmac
+        import json
+
+        self.order.status = "cancelled"
+        self.order.payment_status = "Expired - Unpaid"
+        self.order.save(update_fields=["status", "payment_status"])
+        payload = {
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_late_capture",
+                        "order_id": "order_expiry_123",
+                        "amount": 240000,
+                        "currency": "INR",
+                        "status": "captured",
+                    }
+                }
+            },
+        }
+        raw_body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(b"webhook_secret", raw_body, hashlib.sha256).hexdigest()
+        response = self.client.post(
+            reverse("orders:razorpay_webhook"),
+            data=raw_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=signature,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "payment_review")
+        self.assertEqual(self.order.payment_status, "Payment Captured - Review Required")
+        self.assertEqual(self.order.razorpay_payment_id, "pay_late_capture")
+
+        duplicate = self.client.post(
+            reverse("orders:razorpay_webhook"),
+            data=raw_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=signature,
+        )
+        self.assertEqual(duplicate.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "payment_review")

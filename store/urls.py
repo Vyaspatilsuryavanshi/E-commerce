@@ -13,4 +13,6 @@ urlpatterns = [
     path("visual-search/", views.visual_search_view, name="visual_search"),
     path("api/nearby-stores/", views.api_nearby_stores, name="api_nearby_stores"),
     path("api/set-location/", views.api_set_user_location, name="api_set_location"),
+    path("newsletter/subscribe/", views.newsletter_subscribe, name="newsletter_subscribe"),
+    path("newsletter/confirm/<str:token>/", views.newsletter_confirm, name="newsletter_confirm"),
 ]

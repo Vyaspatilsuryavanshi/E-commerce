@@ -15,9 +15,9 @@
       {% if order.status == "payment_review" %}Payment for order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> requires a support review. Please contact the store before placing another order.{% elif order.payment_method == "cod" or order.payment_status == "Paid" %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.{% else %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been created. Complete payment to confirm it.{% endif %}
     </p>
     <div style="display:inline-flex; gap:12px; font-size:0.85rem; background:#f8fafc; padding:8px 18px; border-radius:var(--radius-full); border:1px solid var(--border-medium);">
-      <span>{% if order.status == "pending_payment" %}Order Reference{% elif order.status == "payment_review" %}Support Reference{% else %}Courier Tracking{% endif %}: <strong>{% if order.status == "pending_payment" or order.status == "payment_review" %}{{ order.order_number }}{% else %}{{ order.tracking_number }}{% endif %}</strong></span>
+      <span>{% if order.status == "pending_payment" %}Order Reference: <strong>{{ order.order_number }}</strong>{% elif order.status == "payment_review" %}Support Reference: <strong>{{ order.order_number }}</strong>{% elif order.tracking_number %}Courier Tracking: <strong>{% if order.tracking_url %}<a href="{{ order.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ order.tracking_number }}</a>{% else %}{{ order.tracking_number }}{% endif %}</strong>{% else %}Tracking details will be added after dispatch{% endif %}</span>
       <span>•</span>
-      <span>Transit: <strong>{{ order.delivery_estimate_text }}</strong></span>
+      <span>Estimated delivery: <strong>{{ order.delivery_estimate_text }}</strong></span>
       {% if order.location_autodetected %}
         <span>•</span>
         <span style="color:#059669; font-weight:700;">📍 GPS Dispatch Verified</span>
@@ -27,7 +27,7 @@
 
   <!-- Courier Dispatch Timeline -->
   <div style="background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium); padding:32px; box-shadow:var(--shadow-sm); margin-bottom:32px;">
-    <h3 style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700; margin-bottom:24px;">Live Courier Dispatch Timeline</h3>
+    <h3 style="font-family:var(--font-serif); font-size:1.25rem; font-weight:700; margin-bottom:24px;">Order Fulfilment Status</h3>
 
     <div class="tracking-timeline">
       <div class="tracking-step {% if order.status != "pending_payment" %}completed{% else %}active{% endif %}">

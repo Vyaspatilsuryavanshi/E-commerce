@@ -152,7 +152,7 @@ def checkout(request):
             delivery = DELIVERY_CONFIG[delivery_method]
             shipping_cost = Decimal("0.00") if delivery_method == "standard" and subtotal >= FREE_SHIPPING_THRESHOLD else delivery["cost"]
             total = max(Decimal("0.00"), subtotal - discount) + shipping_cost
-            payment_status = "Pending - Cash on Delivery" if payment_method == "cod" else "Paid - Demo Checkout"
+            payment_status = "Pending - Cash on Delivery" if payment_method == "cod" else "Pending - Demo Checkout"
 
             order = Order.objects.create(
                 user=request.user if request.user.is_authenticated else None,

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase, Client, override_settings
 from django.core import mail
 import re
+from unittest.mock import patch
 from django.urls import reverse
 from PIL import Image
 
@@ -157,14 +158,8 @@ class NewsletterSubscriptionTests(TestCase):
         self.assertEqual(NewsletterSubscriber.objects.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
 
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_newsletter_confirmation_token_expires(self):
-        from django.core import signing
-
-        token = signing.dumps(
-            {"email": "reader@example.com"},
-            salt="aura-luxe-newsletter-confirm",
-        )
-        response = self.client.get(reverse("store:newsletter_confirm", args=[token]))
+    @patch("store.views.signing.loads", side_effect=__import__("django.core.signing", fromlist=["SignatureExpired"]).SignatureExpired("expired"))
+    def test_newsletter_confirmation_token_expires(self, load_token):
+        response = self.client.get(reverse("store:newsletter_confirm", args=["expired-token"]))
         self.assertRedirects(response, reverse("store:home"))
         self.assertEqual(NewsletterSubscriber.objects.count(), 0)

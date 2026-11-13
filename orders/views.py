@@ -225,7 +225,7 @@ def order_success(request, order_number):
     if not _order_accessible_to_user(request, order):
         messages.error(request, "That order is not available in this session.")
         return redirect("store:home")
-    return render(request, "orders/order_success.html", {"order": order, "razorpay_key_id": settings.RAZORPAY_KEY_ID})
+    return render(request, "orders/order_success.html", {"order": order, "razorpay_key_id": settings.RAZORPAY_KEY_ID, "razorpay_amount": amount_in_paise(order.total) if order.razorpay_order_id else 0})
 
 
 
@@ -327,6 +327,9 @@ def cancel_order(request, order_number):
             return redirect("store:home")
         if not order.can_cancel:
             messages.error(request, "This order can no longer be cancelled because fulfillment has started.")
+            return redirect("orders:order_detail", order_number=order_number)
+        if order.payment_status == "Paid":
+            messages.error(request, "This order has already been paid. Please contact support to request cancellation and a verified refund.")
             return redirect("orders:order_detail", order_number=order_number)
         for item in order.items.all():
             if item.product_id:

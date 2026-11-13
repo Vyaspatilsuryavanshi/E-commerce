@@ -83,6 +83,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Visual-search camera uploads are base64 encoded; allow the 10MB decoded limit plus encoding overhead.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 14 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
 CART_SESSION_ID = "aura_luxe_cart"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
 LOGIN_URL = "accounts:login"

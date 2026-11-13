@@ -273,12 +273,6 @@ def payment_verify(request, order_number):
                 locked_order.razorpay_payment_id = payment_id
                 locked_order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
                 return JsonResponse({"status": "review", "message": "Payment requires support review before fulfilment."}, status=409)
-            if locked_order.status == "cancelled":
-                locked_order.status = "payment_review"
-                locked_order.payment_status = "Payment Captured - Review Required"
-                locked_order.razorpay_payment_id = payment_id
-                locked_order.save(update_fields=["status", "payment_status", "razorpay_payment_id", "updated_at"])
-                return JsonResponse({"status": "review", "message": "Payment was captured after order cancellation. Support must review this payment."}, status=409)
             if locked_order.payment_status != "Paid":
                 locked_order.razorpay_payment_id = payment_id
                 locked_order.payment_status = "Paid"

@@ -13,7 +13,7 @@
     <form action="{% url 'accounts:logout' %}" method="post" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-outline btn-sm">Sign Out</button></form>
   </div>
 
-  <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">
+  <div class="profile-page-grid" style="display:grid; grid-template-columns:1.6fr 1fr; gap:40px; align-items:flex-start;">
     <!-- Orders History -->
     <div>
       <h2 style="font-family:var(--font-serif); font-size:1.4rem; font-weight:700; margin-bottom:20px;">Your Orders & Dispatches</h2>

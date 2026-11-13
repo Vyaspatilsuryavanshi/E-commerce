@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% if order.status == "pending_payment" %}Payment Pending{% else %}Order Confirmed{% endif %} #{{ order.order_number }} | AURA LUXE{% endblock %}
+{% block title %}{% if order.status == "pending_payment" %}Payment Pending{% elif order.status == "payment_review" %}Payment Review{% else %}Order Confirmed{% endif %} #{{ order.order_number }} | AURA LUXE{% endblock %}
 
 {% block content %}
 <div class="container" style="padding:48px 0 80px; max-width:920px;">
   <!-- Success Hero Card -->
   <div style="text-align:center; background:#ffffff; border-radius:var(--radius-lg); border:1px solid var(--border-medium); padding:40px; box-shadow:var(--shadow-md); margin-bottom:32px;">
-    <div style="width:72px; height:72px; border-radius:50%; background:#ecfdf5; color:#059669; font-size:2.2rem; display:inline-flex; align-items:center; justify-content:center; margin-bottom:18px;">
-      ✓
+    <div style="width:72px; height:72px; border-radius:50%; background:{% if order.status == "payment_review" %}#fffbeb{% else %}#ecfdf5{% endif %}; color:{% if order.status == "payment_review" %}#b45309{% else %}#059669{% endif %}; font-size:2.2rem; display:inline-flex; align-items:center; justify-content:center; margin-bottom:18px;">
+      {% if order.status == "payment_review" %}!{% else %}✓{% endif %}
     </div>
-    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">Thank You, {{ order.first_name }}</h1>
+    <h1 style="font-family:var(--font-serif); font-size:2.4rem; font-weight:700; margin-bottom:8px;">{% if order.status == "payment_review" %}Payment Review Required{% else %}Thank You, {{ order.first_name }}{% endif %}</h1>
     <p style="font-size:1.05rem; color:var(--text-muted); margin-bottom:16px;">
-      {% if order.payment_method == "cod" or order.payment_status == "Paid" %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.{% else %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been created. Complete payment to confirm it.{% endif %}
+      {% if order.status == "payment_review" %}Payment for order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> requires a support review. Please contact the store before placing another order.{% elif order.payment_method == "cod" or order.payment_status == "Paid" %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been confirmed.{% else %}Your order <strong style="color:var(--text-main);">#{{ order.order_number }}</strong> has been created. Complete payment to confirm it.{% endif %}
     </p>
     <div style="display:inline-flex; gap:12px; font-size:0.85rem; background:#f8fafc; padding:8px 18px; border-radius:var(--radius-full); border:1px solid var(--border-medium);">
-      <span>{% if order.status == "pending_payment" %}Order Reference{% else %}Courier Tracking{% endif %}: <strong>{% if order.status == "pending_payment" %}{{ order.order_number }}{% else %}{{ order.tracking_number }}{% endif %}</strong></span>
+      <span>{% if order.status == "pending_payment" %}Order Reference{% elif order.status == "payment_review" %}Support Reference{% else %}Courier Tracking{% endif %}: <strong>{% if order.status == "pending_payment" or order.status == "payment_review" %}{{ order.order_number }}{% else %}{{ order.tracking_number }}{% endif %}</strong></span>
       <span>•</span>
       <span>Transit: <strong>{{ order.delivery_estimate_text }}</strong></span>
       {% if order.location_autodetected %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Department, Category, Brand, Product, ProductVariant, ProductReview, StoreLocation
+from .models import Department, Category, Brand, NewsletterSubscriber, Product, ProductVariant, ProductReview, StoreLocation
 
 
 class CategoryInline(admin.TabularInline):

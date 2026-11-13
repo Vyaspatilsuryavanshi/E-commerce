@@ -38,6 +38,7 @@ class OrderFlowTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)
         self.assertEqual(order.total, Decimal("2549.00"))
+        self.assertEqual(order.payment_status, "Pending - Demo Checkout")
         confirmation = self.client.get(reverse("orders:order_success", args=[order.order_number]))
         self.assertEqual(confirmation.status_code, 200)
 

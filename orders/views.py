@@ -159,7 +159,7 @@ def checkout(request):
                 delivery_method=delivery_method, delivery_estimate_text=delivery["estimate"],
                 payment_method=payment_method, payment_status=payment_status,
                 subtotal=subtotal, discount=discount, shipping_cost=shipping_cost,
-                total=total, coupon_used=coupon_code, status="placed",
+                total=total, coupon_used=coupon_code, status="placed" if payment_method == "cod" else "pending_payment",
             )
             for product, variant, quantity, unit_price in locked_items:
                 if variant:
@@ -263,7 +263,8 @@ def payment_verify(request, order_number):
             if locked_order.payment_status != "Paid":
                 locked_order.razorpay_payment_id = payment_id
                 locked_order.payment_status = "Paid"
-                locked_order.save(update_fields=["razorpay_payment_id", "payment_status", "updated_at"])
+                locked_order.status = "placed"
+                locked_order.save(update_fields=["razorpay_payment_id", "payment_status", "status", "updated_at"])
     except IntegrityError:
         return JsonResponse({"status": "error", "message": "This payment reference is already linked to another order."}, status=409)
     return JsonResponse({"status": "success", "message": "Payment verified successfully."})
@@ -294,7 +295,8 @@ def razorpay_webhook(request):
             if order.payment_status != "Paid":
                 order.razorpay_payment_id = payment_id
                 order.payment_status = "Paid"
-                order.save(update_fields=["razorpay_payment_id", "payment_status", "updated_at"])
+                order.status = "placed"
+                order.save(update_fields=["razorpay_payment_id", "payment_status", "status", "updated_at"])
     except Order.DoesNotExist:
         return JsonResponse({"status": "error", "message": "Order not found."}, status=404)
     except IntegrityError:
